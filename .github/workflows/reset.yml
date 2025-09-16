@@ -2,13 +2,6 @@ name: Reset
 
 on:
   workflow_call:
-    inputs:
-      caller-ref-name:
-        required: true
-        type: string
-      caller-sha:
-        required: true
-        type: string
 
 permissions: write-all
 
@@ -21,22 +14,22 @@ jobs:
         uses: actions/checkout@master
       # Reset all branch heads (except production and preprod) to the production head after building
       - name: Reset Branch
-        if: ${{ inputs.caller-ref-name != 'production' && inputs.caller-ref-name != 'preprod' }}
+        if: ${{ github.ref_name != 'production' && github.ref_name != 'preprod' }}
         run: |
-            git config user.name "$( git log --format=%cn -n 1 ${{inputs.caller-sha}} )"
-            git config user.email "$( git log --format=%ce -n 1 ${{inputs.caller-sha}} )"
+            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
             git reset --hard origin/production
-            echo "${{inputs.caller-ref-name}} hard reset on $(date)" > reset.txt
+            echo "${{github.ref_name}} hard reset on $(date)" > reset.txt
             echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
             git add .
-            git commit -m "[skip ci] ${{inputs.caller-ref-name}} - [skip ci] git reset --hard origin/production" --no-verify
-            git push -f origin ${{inputs.caller-ref-name}}
+            git commit -m "[skip ci] ${{github.ref_name}} - [skip ci] git reset --hard origin/production" --no-verify
+            git push -f origin ${{github.ref_name}}
       # After a prod deployment, reset all test branches to the production code
       - name: Reset Environments
-        if: ${{ inputs.caller-ref-name == 'production' }}
+        if: ${{ github.ref_name == 'production' }}
         run: |
-            git config user.name "$( git log --format=%cn -n 1 ${{inputs.caller-sha}} )"
-            git config user.email "$( git log --format=%ce -n 1 ${{inputs.caller-sha}} )"
+            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
             export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
             for test_env in ${TEST_ENVS[@]}; do
               if git show-ref --quiet refs/heads/$test_env; then
