@@ -18,7 +18,7 @@ jobs:
         run: |
             git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
             git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
-            git reset --hard origin/production
+            git reset --hard origin/production --
             echo "${{github.ref_name}} hard reset on $(date)" > reset.txt
             echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
             git add .
@@ -33,8 +33,8 @@ jobs:
             export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
             for test_env in ${TEST_ENVS[@]}; do
               if git show-ref --quiet refs/heads/$test_env; then
-                git checkout $test_env
-                git reset --hard origin/production
+                git checkout $test_env --
+                git reset --hard origin/production --
                 echo "$test_env hard reset on $(date)" > reset.txt
                 echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
                 git add .
