@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  workflow_call:
+
+permissions: write-all
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+      - name: Get latest tag
+        id: get_latest_tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        with:
+          semver_only: false
+      - name: Get second latest tag
+        id: get_second_latest_tag
+        run: |
+          SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
+          echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          fromTag: ${{ steps.get_latest_tag.outputs.tag }}
+          toTag: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}
+          writeToFile: true
+          includeInvalidCommits: true
+          excludeTypes: build,
+          reverseOrder: true
+      - name: Create Release
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          name: ${{ steps.get_latest_tag.outputs.tag }}
+          body: ${{ steps.changelog.outputs.changes }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.get_latest_tag.outputs.tag }}
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: preprod
+          commit_message: 'docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.tag }} [skip ci]'
+          file_pattern: CHANGELOG.md
+      - name: Get current timestamp in milliseconds for deployment marker
+        id: timestamp
+        run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
+      - name: Set New Relic deployment marker
+        uses: newrelic/deployment-marker-action@v2.6.1
+        with:
+          apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
+          region: "US"
+          guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
+          version: "${{ steps.get_latest_tag.outputs.tag }}"
+          changelog: "https://github.com/${{ github.repository }}/blob/preprod/CHANGELOG.md"
+          description: "Automated Release via Github Actions"
+          user: "${{ github.actor }}"
+          timestamp: "${{ steps.timestamp.outputs.NOW_MS }}"
