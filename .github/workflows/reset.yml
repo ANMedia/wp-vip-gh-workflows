@@ -12,9 +12,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
+      # Reset all branch heads (except production and preprod) to the production head after building
       - name: Reset Branch
         if: ${{ github.ref_name != 'production' && github.ref_name != 'preprod' }}
-        run: echo
+        run: |
+            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
+            git reset --hard origin/production
+            echo "${{github.ref_name}} hard reset on $(date)" > reset.txt
+            echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
+            git add .
+            git commit -m "[skip ci] ${{github.ref_name}} - [skip ci] git reset --hard origin/production" --no-verify
+            git push -f origin ${{github.ref_name}}
       - name: Reset Environments
         if: ${{ github.ref_name == 'production' }}
         run: echo
