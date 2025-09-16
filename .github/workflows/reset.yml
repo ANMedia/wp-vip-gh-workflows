@@ -1,0 +1,20 @@
+name: Reset
+
+on:
+  workflow_call:
+
+permissions: write-all
+
+jobs:
+  reset:
+    name: Reset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Reset Branch
+        if: ${{ github.ref_name != 'production' && github.ref_name != 'preprod' }}
+        run: echo
+      - name: Reset Environments
+        if: ${{ github.ref_name == 'production' }}
+        run: echo
