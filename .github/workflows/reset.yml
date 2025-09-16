@@ -39,11 +39,13 @@ jobs:
             git config user.email "$( git log --format=%ce -n 1 ${{inputs.caller-sha}} )"
             export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
             for test_env in ${TEST_ENVS[@]}; do
-              git checkout $test_env
-              git reset --hard origin/production
-              echo "$test_env hard reset on $(date)" > reset.txt
-              echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
-              git add .
-              git commit -m "[skip ci] $test_env - [skip ci] git reset --hard origin/production" --no-verify
-              git push -f origin $test_env
+              if git show-ref --quiet refs/heads/$test_env; then
+                git checkout $test_env
+                git reset --hard origin/production
+                echo "$test_env hard reset on $(date)" > reset.txt
+                echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
+                git add .
+                git commit -m "[skip ci] $test_env - [skip ci] git reset --hard origin/production" --no-verify
+                git push -f origin $test_env
+              fi
             done
