@@ -7,11 +7,32 @@ on:
         required: true
 
 jobs:
+  setup-php:
+    name: Setup PHP
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Application
+      uses: shivammathur/setup-php@v2
+      with:
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
+        coverage: none
+  setup-svn:
+    name: Setup SVN
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Subverson
+      run: sudo apt-get install -y subversion
+  composer:
+    name: Composer Install
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
   phpunit:
     name: PHPUnit
     runs-on: ubuntu-latest
     env:
-      # needed to install private packages from dmg-satis.net
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
     services:
       mysql:
@@ -24,17 +45,6 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-    - uses: actions/checkout@v4
-    # needed for some dependencies
-    - name: Install Subverson
-      run: sudo apt-get install -y subversion
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
-        coverage: none
-    - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
     - name: PHPUnit
       run: |
        composer run phpunit
