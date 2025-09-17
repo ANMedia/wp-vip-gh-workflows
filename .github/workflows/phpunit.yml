@@ -2,19 +2,18 @@ name: PHPUnit
 
 on:
   workflow_call:
+    secrets:
+      COMPOSER_AUTH:
+        required: true
 
 jobs:
-  build:
-    name: Composer
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
-
   phpunit:
     name: PHPUnit
     runs-on: ubuntu-latest
+    env:
+      VIP_DEPLOY_SUFFIX: "-built"
+      # needed to install private packages from dmg-satis.net
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
     services:
       mysql:
         image: mysql:8.0
@@ -25,18 +24,17 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    # needed for some dependencies
     - name: Install Subverson
       run: sudo apt-get install -y subversion
-    - name: Install Composer dependencies
-      run: composer install -o --no-progress
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
         coverage: none
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
     - name: PHPUnit
       run: |
-        tests/phpunit/install-wp-tests.sh wordpress_test root root 127.0.0.1:${{ job.services.mysql.ports['3306'] }} latest true
-        vendor/bin/phpunit
+       composer run phpunit

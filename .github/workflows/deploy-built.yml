@@ -1,4 +1,4 @@
-name: VIP Build and Deploy
+name: Deploy to Built
 
 on:
   workflow_call:
@@ -9,7 +9,7 @@ on:
 permissions: write-all
 
 jobs:
-  build-deploy:
+  deploy-built:
     name: Deploy to -built
     runs-on: ubuntu-latest
     permissions:
