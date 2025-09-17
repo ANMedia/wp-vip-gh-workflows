@@ -32,6 +32,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install NPM dependencies
-      run: npm ci 
+      run: npm clean-install 
     - name: NPM lint
       run: npm run lint:js

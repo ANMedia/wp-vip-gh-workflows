@@ -1,11 +1,11 @@
 # WordPress VIP Github Action Workflows
 
-Repository to store reusable Github Action workflow configuration files for our WordPress VIP applications. 
+Repository to store [reusable Github Action Workflow](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) configuration files for DMG WordPress VIP applications. 
 
 
-## Example Project file
+## Example Project File
 
-Example WP VIP Application project file:
+Each WordPress VIP application would contain a workflow file within `/.github/workflows` that calls the necessary resuable workflows. Some projects may not call all workflows (e.g. PHPUnit)
 
 ```
 name: Build and Deploy
@@ -58,11 +58,12 @@ jobs:
 
 ## Workflows
 
-Summary descriptions of the available workflows
+Summary descriptions of the resuable workflows.
 
 ### Deploy to Built
 
-Build the application with Composer and NPM. Push to the WordPress VIP deployment branch `-built`
+Build the application with Composer and NPM. 
+Push to the WordPress VIP deployment branch `-built` using the WP VIP-hosted script.
 
 ### Lint
 
@@ -71,6 +72,8 @@ Run the PHP and JS linters. Requires commands like:
 `composer run lint:php`
 `composer run phpstan`
 `npm run lint:js`
+
+@TODO normalize on a runner or use language-specific runners?
 
 ### PHPUnit
 
@@ -85,5 +88,5 @@ Execute PHPUnit tests via `composer run phpunit`
 
 ### Reset
 
-If a test$N or develop branch, reset to the HEAD of the production branch
-If a production release, reset all test$N and develop branches to production HEAD.
+If a `test$N` or `develop` branch, reset to the HEAD of the `production` branch
+If a production release, reset all `test$N` and `develop` branches to `production` HEAD.
