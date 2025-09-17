@@ -24,7 +24,7 @@ jobs:
     - name: Run PHPCS
       run: composer run lint:php
     - name: Run PHP Stan
-      run: composer run lint:phpstan
+      run: composer run phpstan
 
   lint-js:
     name: Lint JS
