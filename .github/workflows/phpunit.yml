@@ -11,7 +11,7 @@ jobs:
     name: Setup PHP
     runs-on: ubuntu-latest
     steps:
-    - name: Build Application
+    - name: Configure PHP
       uses: shivammathur/setup-php@v2
       with:
         extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
@@ -25,6 +25,8 @@ jobs:
   composer:
     name: Composer Install
     runs-on: ubuntu-latest
+    env:
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
     steps:
     - uses: actions/checkout@v4
     - name: Install Composer dependencies
@@ -32,14 +34,12 @@ jobs:
   phpunit:
     name: PHPUnit
     runs-on: ubuntu-latest
-    env:
-      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
     services:
       mysql:
         image: mysql:8.0
         env:
           MYSQL_USER: root
-          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: wordpress_test
         ports:
           - 3306
