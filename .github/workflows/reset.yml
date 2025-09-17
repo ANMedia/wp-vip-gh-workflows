@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@master
       # Reset all branch heads (except production and preprod) to the production head after building
       - name: Reset Branch
-        if: ${{ github.ref_name != 'production' && github.ref_name != 'preprod' }}
+        if: ${{ github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' }}
         run: |
             git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
             git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
