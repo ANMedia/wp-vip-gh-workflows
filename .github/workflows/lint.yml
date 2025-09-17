@@ -1,0 +1,31 @@
+name: Lint
+
+on:
+  workflow_call:
+
+jobs:
+  lint-php:
+    name: Lint PHP
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
+    - name: Composer self-update
+      run: sudo composer self-update
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev
+    - name: Run PHPCS
+      run: composer run lint:php
+    - name: Run PHP Stan
+      run: composer run lint:phpstan
+
+  lint-js:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install NPM dependencies
+      run: npm ci 
+    - name: NPM lint
+      run: npm run lint:js
