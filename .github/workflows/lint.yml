@@ -15,8 +15,6 @@ jobs:
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
     steps:
     - uses: actions/checkout@v4
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
     - name: Composer self-update
       run: sudo composer self-update
     - name: Install dependencies
