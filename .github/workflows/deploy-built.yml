@@ -12,7 +12,7 @@ jobs:
   deploy-built:
     name: Deploy to -built
     runs-on: ubuntu-latest
-    if: startsWith(github.ref_name, 'test-') || github.ref_name == 'develop' || github.ref_name == 'preprod' || github.ref_name == 'production'
+    if: startsWith(github.ref_name, 'test') || github.ref_name == 'develop' || github.ref_name == 'preprod' || github.ref_name == 'production'
     permissions:
       contents: write
     env:
