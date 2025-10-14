@@ -27,7 +27,7 @@ jobs:
       - name: Composer self-update
         run: sudo composer self-update
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev --ignore-platform-req=php
       
       # setup JS deps
       - name: Install NPM dependencies
