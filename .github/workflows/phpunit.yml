@@ -31,7 +31,7 @@ jobs:
         extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
         coverage: none
     - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader
+      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
     - name: PHPUnit
       run: |
        composer run phpunit
