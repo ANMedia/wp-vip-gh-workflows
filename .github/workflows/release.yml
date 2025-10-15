@@ -3,6 +3,10 @@ name: Release
 on:
   workflow_call:
     inputs:
+      update_changelog:
+        required: false
+        type: boolean
+        default: false
       update_wiki:
         required: false
         type: boolean
@@ -53,7 +57,7 @@ jobs:
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
       - name: Update CHANGELOG
         id: changelog
-        if: ${{ github.ref_name == 'production' }}
+        if: ${{ github.ref_name == 'production' && inputs.update_changelog }}
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
