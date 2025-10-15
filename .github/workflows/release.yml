@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_call:
+    inputs:
+      update_wiki:
+        required: false
+        type: boolean
+        default: false
     secrets:
       NEW_RELIC_API_KEY:
         required: true
@@ -76,6 +81,32 @@ jobs:
           branch: preprod
           commit_message: 'docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.tag }} [skip ci]'
           file_pattern: CHANGELOG.md
+
+      - name: Update Wiki
+        if: ${{ github.ref_name == 'production' && inputs.update_wiki }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(git log ${{ github.sha }} --grep='Merge pull request' --pretty=format:'%s' -1 | grep -o '#[0-9]\+')
+          PR_URL="[[${{ github.repository }}${PR_NUMBER:1}](https://github.com/${{ github.repository }}/pull/${PR_NUMBER:1})]"
+
+          # Note: This will only run on production so no need for conditional.
+          DATE=$(date '+%-d %B %Y')
+          MESSAGE="\r***\n**$DATE**"
+
+          CL_ENTRY="$MESSAGE $PR_URL\n"
+
+          # Note: Need to use HTTPS to access in GH Actions. Also use dynamic
+          # repository path to allow for forked repo usage.
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git $(basename ${{ github.repository }}).wiki
+          cd $(basename ${{ github.repository }}).wiki
+          git config user.name "GitHub Actions"
+          git config user.email "dmg-github@dmgmedia.co.uk"
+          echo -e "$CL_ENTRY$(cat Change-Log.md)" > Change-Log.md
+          git add .
+          git commit -m "Updated Change-Log.md"
+          git push
+
       - name: Get current timestamp in milliseconds for deployment marker
         id: timestamp
         run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
