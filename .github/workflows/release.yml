@@ -6,7 +6,7 @@ on:
       commit_changelog:
         required: false
         type: boolean
-        default: false
+        default: true
       update_wiki:
         required: false
         type: boolean
@@ -16,8 +16,6 @@ on:
         required: true
       NEW_RELIC_DEPLOYMENT_ENTITY_GUID:
         required: true
-      NEW_RELIC_PREPROD_ENTITY_GUID:
-        required: false
 
 permissions: write-all
 
@@ -33,10 +31,8 @@ jobs:
       # Create git tag from timestamp YYYY-MM-DDTHH:MM:SS
       - name: Get current date and time
         id: datetime
-        if: ${{ github.ref_name == 'production' }}
         run: echo "TAG_NAME=$(date +'%Y-%m-%dT%H.%M.%S')" >> "$GITHUB_OUTPUT"
       - name: Create and push tag
-        if: ${{ github.ref_name == 'production' }}
         uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ steps.datetime.outputs.TAG_NAME }}
@@ -45,19 +41,16 @@ jobs:
           force_push_tag: true
       - name: Get latest tag
         id: get_latest_tag
-        if: ${{ github.ref_name == 'production' }}
         uses: actions-ecosystem/action-get-latest-tag@v1
         with:
           semver_only: false
       - name: Get second latest tag
         id: get_second_latest_tag
-        if: ${{ github.ref_name == 'production' }}
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
       - name: Update CHANGELOG
         id: changelog
-        if: ${{ github.ref_name == 'production' }}
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
@@ -68,7 +61,6 @@ jobs:
           excludeTypes: build,
           reverseOrder: true
       - name: Create Release
-        if: ${{ github.ref_name == 'production' }}
         uses: ncipollo/release-action@v1.12.0
         with:
           allowUpdates: true
@@ -79,7 +71,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.tag }}
       - name: Commit CHANGELOG.md
-        if: ${{ github.ref_name == 'production' && inputs.commit_changelog }} 
+        if: ${{ inputs.commit_changelog }} 
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: preprod
@@ -87,7 +79,7 @@ jobs:
           file_pattern: CHANGELOG.md
 
       - name: Update Wiki
-        if: ${{ github.ref_name == 'production' && inputs.update_wiki }}
+        if: ${{ inputs.update_wiki }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -115,7 +107,6 @@ jobs:
         id: timestamp
         run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
       - name: Set New Relic deployment marker
-        if: ${{ github.ref_name == 'production' }}
         uses: newrelic/deployment-marker-action@v2.6.1
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
@@ -125,31 +116,4 @@ jobs:
           changelog: "https://github.com/${{ github.repository }}/blob/preprod/CHANGELOG.md"
           description: "Automated Release via Github Actions"
           user: "${{ github.actor }}"
-          timestamp: "${{ steps.timestamp.outputs.NOW_MS }}"
-
-      # Set New Relic deployment marker for Preprod.
-      # Requires NEW_RELIC_PREPROD_ENTITY_GUID secret to be set.
-
-      # Get commit info for changelog and user.
-      - name: Get commit info
-        id: commit_info
-        if: ${{ github.ref_name == 'preprod' && secrets.NEW_RELIC_PREPROD_ENTITY_GUID }}
-        run: |
-          CHANGELOG=$(git log ${{ github.sha }} --oneline -1)
-          USER=$(git log ${{ github.sha }} --format="%an" -1)
-          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "user=$USER" >> $GITHUB_OUTPUT
-
-      # Set the Preprod Marker.
-      - name: Set Preprod New Relic deployment marker
-        if: ${{ github.ref_name == 'preprod' && secrets.NEW_RELIC_PREPROD_ENTITY_GUID }}
-        uses: newrelic/deployment-marker-action@v2.6.1
-        with:
-          apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
-          region: "US"
-          guid: ${{ secrets.NEW_RELIC_PREPROD_ENTITY_GUID }}
-          version: "${{ github.sha }}"
-          changelog: "${{ steps.commit_info.outputs.changelog }}"
-          description: "Release via Github Actions"
-          user: "${{ steps.commit_info.outputs.user }}"
           timestamp: "${{ steps.timestamp.outputs.NOW_MS }}"
