@@ -11,7 +11,7 @@ jobs:
     name: PHPUnit
     runs-on: ubuntu-latest
     env:
-      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }'
     services:
       mysql:
         image: mysql:8.0
@@ -23,15 +23,20 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
     - uses: actions/checkout@v4
-    - name: Install Subverson
+    - name: Install Subversion
       run: sudo apt-get install -y subversion &
     - name: Configure PHP
       uses: shivammathur/setup-php@v2
       with:
-        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
-        coverage: none
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick, xdebug
+        coverage: xdebug
     - name: Install Composer dependencies
       run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
-    - name: PHPUnit
+    - name: PHPUnit with Coverage
       run: |
-       composer run phpunit
+        composer run phpunit
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: tests/phpunit/coverage/
