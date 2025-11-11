@@ -34,13 +34,15 @@ jobs:
       run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
     - name: PHPUnit
       run: |
-       composer run phpunit
+        composer run phpunit
     - name: Commit coverage report
       run: |
         git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
         git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
         git fetch origin  
-        git checkout ${{ github.head_ref || github.ref_name }}  --
-        git add .
+        git checkout ${{ github.head_ref || github.ref_name }}
+        ls -al ./tests/phpunit
+        git status
+        git add --force ./tests/phpunit/coverage
         git commit -m "Add PHPUnit coverage report" 
         git push --force origin ${{ github.head_ref || github.ref_name }} 
