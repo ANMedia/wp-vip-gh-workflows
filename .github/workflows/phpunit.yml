@@ -2,6 +2,11 @@ name: PHPUnit
 
 on:
   workflow_call:
+    inputs:
+      commit_coverage:
+        required: false
+        type: boolean
+        default: false
     secrets:
       COMPOSER_AUTH:
         required: true
@@ -36,6 +41,7 @@ jobs:
       run: |
         composer run phpunit
     - name: Commit coverage report
+      if: ${{ inputs.commit_coverage }} 
       run: |
         git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
         git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
