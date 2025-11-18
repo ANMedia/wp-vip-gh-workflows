@@ -16,31 +16,32 @@ jobs:
       - name: Reset Branch
         if: ${{ github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' }}
         run: |
-            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
-            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
-            git fetch origin
-            git reset --hard origin/production --
-            echo "${{github.ref_name}} hard reset on $(date)" > reset.txt
-            echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
-            git add .
-            git commit -m "[skip ci] ${{github.ref_name}} - [skip ci] git reset --hard origin/production" --no-verify
-            git push -f origin ${{github.ref_name}}
+          git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+          git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
+          git fetch origin
+          git reset --hard origin/production --
+          echo "${{github.ref_name}} hard reset on $(date)" > reset.txt
+          echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
+          git add .
+          git commit -m "[skip ci] ${{github.ref_name}} - [skip ci] git reset --hard origin/production" --no-verify
+          git push -f origin ${{github.ref_name}}
       # After a prod deployment, reset all test branches to the production code
       - name: Reset Environments
         if: ${{ github.ref_name == 'production' }}
         run: |
-            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
-            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
-            export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
-            for test_env in ${TEST_ENVS[@]}; do
-              if git show-ref --quiet refs/heads/$test_env; then
-                git fetch origin  
-                git checkout $test_env --
-                git reset --hard origin/production --
-                echo "$test_env hard reset on $(date)" > reset.txt
-                echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
-                git add .
-                git commit -m "[skip ci] $test_env - [skip ci] git reset --hard origin/production" --no-verify
-                git push -f origin $test_env
-              fi
-            done
+          git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+          git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
+          git fetch origin
+          export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
+          for test_env in ${TEST_ENVS[@]}; do
+            if git show-ref --quiet refs/remotes/origin/$test_env; then
+              echo "Resetting branch $test_env"
+              git checkout -B $test_env origin/$test_env
+              git reset --hard origin/production
+              echo "$test_env hard reset on $(date)" > reset.txt
+              echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
+              git add .
+              git commit -m "[skip ci] $test_env - [skip ci] git reset --hard origin/production" --no-verify
+              git push -f origin $test_env && echo "Push succeeded for $test_env" || echo "Push failed for $test_env"
+            fi
+          done
