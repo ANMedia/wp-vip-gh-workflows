@@ -11,11 +11,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      NEW_RELIC_API_KEY:
-        required: true
-      NEW_RELIC_DEPLOYMENT_ENTITY_GUID:
-        required: true
 
 permissions: write-all
 
@@ -24,14 +19,17 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout code
         uses: actions/checkout@master
         with:
           fetch-depth: 0
+
       # Create git tag from timestamp YYYY-MM-DDTHH:MM:SS
       - name: Get current date and time
         id: datetime
         run: echo "TAG_NAME=$(date +'%Y-%m-%dT%H.%M.%S')" >> "$GITHUB_OUTPUT"
+
       - name: Create and push tag
         uses: rickstaa/action-create-tag@v1
         with:
@@ -39,16 +37,19 @@ jobs:
           message: "Release ${{ steps.datetime.outputs.TAG_NAME }}"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           force_push_tag: true
+
       - name: Get latest tag
         id: get_latest_tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         with:
           semver_only: false
+
       - name: Get second latest tag
         id: get_second_latest_tag
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
@@ -60,6 +61,7 @@ jobs:
           includeInvalidCommits: true
           excludeTypes: build,
           reverseOrder: true
+
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
         with:
@@ -70,8 +72,9 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.tag }}
+
       - name: Commit CHANGELOG.md
-        if: ${{ inputs.commit_changelog }} 
+        if: ${{ inputs.commit_changelog }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: preprod
@@ -104,18 +107,3 @@ jobs:
           git add .
           git commit -m "Updated Change-Log.md"
           git push
-
-      - name: Get current timestamp in milliseconds for deployment marker
-        id: timestamp
-        run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
-      - name: Set New Relic deployment marker
-        uses: newrelic/deployment-marker-action@v2.6.1
-        with:
-          apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
-          region: "US"
-          guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
-          version: "${{ steps.get_latest_tag.outputs.tag }}"
-          changelog: "https://github.com/${{ github.repository }}/blob/preprod/CHANGELOG.md"
-          description: "Automated Release via Github Actions"
-          user: "${{ github.actor }}"
-          timestamp: "${{ steps.timestamp.outputs.NOW_MS }}"
