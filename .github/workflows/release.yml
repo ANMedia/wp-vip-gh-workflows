@@ -16,6 +16,18 @@ on:
         required: true
       NEW_RELIC_DEPLOYMENT_ENTITY_GUID:
         required: true
+      NEW_RELIC_TEST1_ENTITY_GUID:
+        required: false
+      NEW_RELIC_TEST2_ENTITY_GUID:
+        required: false
+      NEW_RELIC_TEST3_ENTITY_GUID:
+        required: false
+      NEW_RELIC_TEST4_ENTITY_GUID:
+        required: false
+      NEW_RELIC_DEVELOP_ENTITY_GUID:
+        required: false
+      NEW_RELIC_PREPROD_ENTITY_GUID:
+        required: false
 
 permissions: write-all
 
@@ -24,33 +36,44 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout code
         uses: actions/checkout@master
         with:
           fetch-depth: 0
+
       # Create git tag from timestamp YYYY-MM-DDTHH:MM:SS
       - name: Get current date and time
+        if: ${{ github.ref_name == 'production' }}
         id: datetime
         run: echo "TAG_NAME=$(date +'%Y-%m-%dT%H.%M.%S')" >> "$GITHUB_OUTPUT"
+
       - name: Create and push tag
+        if: ${{ github.ref_name == 'production' }}
         uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ steps.datetime.outputs.TAG_NAME }}
           message: "Release ${{ steps.datetime.outputs.TAG_NAME }}"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           force_push_tag: true
+
       - name: Get latest tag
         id: get_latest_tag
+        if: ${{ github.ref_name == 'production' }}
         uses: actions-ecosystem/action-get-latest-tag@v1
         with:
           semver_only: false
+
       - name: Get second latest tag
         id: get_second_latest_tag
+        if: ${{ github.ref_name == 'production' }}
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Update CHANGELOG
         id: changelog
+        if: ${{ github.ref_name == 'production' }}
         uses: requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
@@ -60,7 +83,9 @@ jobs:
           includeInvalidCommits: true
           excludeTypes: build,
           reverseOrder: true
+
       - name: Create Release
+        if: ${{ github.ref_name == 'production' }}
         uses: ncipollo/release-action@v1.12.0
         with:
           allowUpdates: true
@@ -70,8 +95,9 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.tag }}
+
       - name: Commit CHANGELOG.md
-        if: ${{ inputs.commit_changelog }} 
+        if: ${{ inputs.commit_changelog && github.ref_name == 'production' }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: preprod
@@ -81,7 +107,7 @@ jobs:
           file_pattern: CHANGELOG.md
 
       - name: Update Wiki
-        if: ${{ inputs.update_wiki }}
+        if: ${{ inputs.update_wiki && github.ref_name == 'production' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -105,17 +131,75 @@ jobs:
           git commit -m "Updated Change-Log.md"
           git push
 
+      # Determine the variables to use for the newrelic-marker step.
+      - name: Set New Relic Entity GUID by branch
+        id: set-guid
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "Using branch: $BRANCH_NAME"
+
+          # Handle production branch specially
+          if [ "$BRANCH_NAME" == "production" ]; then
+            echo "ENTITY_GUID=${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}" >> $GITHUB_OUTPUT
+            echo "DESCRIPTION=Automated Release via Github Actions" >> $GITHUB_OUTPUT
+            echo "VERSION=${{ steps.get_latest_tag.outputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            # For other branches, construct name of GUID secret
+            SECRET_NAME="NEW_RELIC_$(echo $BRANCH_NAME | tr '[:lower:]' '[:upper:]')_ENTITY_GUID"
+            echo "Looking for secret: $SECRET_NAME"
+
+            # Get the secret value by name
+            case "$BRANCH_NAME" in
+              "test1")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_TEST1_ENTITY_GUID }}"
+                ;;
+              "test2")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_TEST2_ENTITY_GUID }}"
+                ;;
+              "test3")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_TEST3_ENTITY_GUID }}"
+                ;;
+              "test4")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_TEST4_ENTITY_GUID }}"
+                ;;
+              "develop")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_DEVELOP_ENTITY_GUID }}"
+                ;;
+              "preprod")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_PREPROD_ENTITY_GUID }}"
+                ;;
+              *)
+                echo "No entity GUID configured for branch $BRANCH_NAME, skipping marker"
+                echo "SKIP_MARKER=true" >> $GITHUB_OUTPUT
+                exit 0
+                ;;
+            esac
+
+            if [ -n "$ENTITY_GUID" ] && [ "$ENTITY_GUID" != "" ]; then
+              echo "ENTITY_GUID=$ENTITY_GUID" >> $GITHUB_OUTPUT
+              echo "DESCRIPTION=Automated deployment via Github Actions - metro-$BRANCH_NAME" >> $GITHUB_OUTPUT
+              echo "VERSION=${{ github.sha }}" >> $GITHUB_OUTPUT
+            else
+              echo "$SECRET_NAME not available, skipping marker"
+              echo "SKIP_MARKER=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
       - name: Get current timestamp in milliseconds for deployment marker
         id: timestamp
+        if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
         run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
+
       - name: Set New Relic deployment marker
+        id: newrelic-marker
+        if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
         uses: newrelic/deployment-marker-action@v2.6.1
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           region: "US"
-          guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
-          version: "${{ steps.get_latest_tag.outputs.tag }}"
+          guid: ${{ steps.set-guid.outputs.ENTITY_GUID }}
+          version: ${{ steps.set-guid.outputs.VERSION }}
           changelog: "https://github.com/${{ github.repository }}/blob/preprod/CHANGELOG.md"
-          description: "Automated Release via Github Actions"
-          user: "${{ github.actor }}"
-          timestamp: "${{ steps.timestamp.outputs.NOW_MS }}"
+          description: ${{ steps.set-guid.outputs.DESCRIPTION }}
+          user: ${{ github.actor }}
+          timestamp: ${{ steps.timestamp.outputs.NOW_MS }}
