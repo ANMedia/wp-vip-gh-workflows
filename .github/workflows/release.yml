@@ -49,6 +49,19 @@ jobs:
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+      - name: Generagte changelog with only Pull Requests
+        id: preprend_changelog_pull_requests
+        run: |
+          PR_CHANGELOG=""
+          PR_LIST=$(git log --merges --reverse '${{steps.get_second_latest_tag.outputs.second_latest_tag}}'..'${{steps.get_latest_tag.outputs.tag}}' --grep='Merge pull request #' --pretty=format:'%b [%h]\n')
+          # Loop over the merge commits to find the ones referencing Jira tickets
+          while IFS= read -r line; do
+            regexJIRA="[A-Z]+-[0-9]+"
+            if [[ "$line" =~ $regexJIRA ]]; then
+                PR_CHANGELOG="${PR_CHANGELOG}${line} \n"
+            fi
+          done <<< $PR_LIST
+          echo -e $PR_CHANGELOG
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
@@ -71,15 +84,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.tag }}
       - name: Commit CHANGELOG.md
-        if: ${{ inputs.commit_changelog }} 
+        if: ${{ inputs.commit_changelog }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: preprod
-          commit_options: '--no-verify'
-          push_options: '--force'
-          commit_message: 'docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.tag }} [skip ci]'
+          commit_options: "--no-verify"
+          push_options: "--force"
+          commit_message: "docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.tag }} [skip ci]"
           file_pattern: CHANGELOG.md
-
       - name: Update Wiki
         if: ${{ inputs.update_wiki }}
         env:
