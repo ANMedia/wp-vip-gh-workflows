@@ -53,13 +53,13 @@ jobs:
         uses: orhun/git-cliff-action@v4
         id: create-changelog
         with:
-          config: ./cliff.toml
-          args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }}
+          config: ./.github/workflows/cliff.toml
+          args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend CHANGELOG.md
+          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
-          OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-      - name: Print the changelog to stdout for debugging
-        run: cat "${{ steps.create-changelog.outputs.changelog }}"
+      - name: Print the changelog file contents to stdout for debugging
+        run: cat CHANGELOG.md
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
         with:
@@ -67,7 +67,7 @@ jobs:
           draft: false
           makeLatest: true
           name: ${{ steps.get_latest_tag.outputs.latest_tag }}
-          body: ${{ steps.create-changelog.outputs.changelog }}
+          body: ${{ steps.create-changelog.outputs.content }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
       - name: Commit CHANGELOG.md
