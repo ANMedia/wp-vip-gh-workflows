@@ -56,7 +56,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_REPO: ${{ github.repository }}
-          OUTPUT: "CHANGELOG.md" # this shouldn't be necessary to define because of the --prepend arg
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
         with:
