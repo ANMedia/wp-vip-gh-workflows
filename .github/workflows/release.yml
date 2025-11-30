@@ -53,7 +53,7 @@ jobs:
         uses: orhun/git-cliff-action@v4
         id: create-changelog
         with:
-          config: .github/workflows/cliff.toml
+          config: ./cliff.toml
           args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }}
         env:
           OUTPUT: CHANGELOG.md
