@@ -55,6 +55,7 @@ jobs:
           args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend=CHANGELOG.md --config-url='https://github.com/ANMedia/wp-vip-gh-workflows/blob/changelog-pr/.github/workflows/cliff.toml?raw=true'
           github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
+          OUTPUT: "/tmp/CHANGELOG.md"
           GITHUB_REPO: ${{ github.repository }}
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0

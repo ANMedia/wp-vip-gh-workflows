@@ -13,7 +13,8 @@ body = """
     {% endfor %}
 {% endfor %}
 
-***
+---
+
 """
 
 # Remove leading and trailing whitespaces from the changelog's body.
@@ -99,7 +100,7 @@ recurse_submodules = false
 
 # Define the sections. Comment out to hide
 [sections]
-#"🔀 Merged Pull Requests" = ["merges"]
+"🔀 Merged Pull Requests" = ["Merged Pull Requests"]
 #"🚀 Features" = ["feat"]
 #"🐛 Bug Fixes" = ["fix"]
 #"⚡ Performance" = ["perf"]
