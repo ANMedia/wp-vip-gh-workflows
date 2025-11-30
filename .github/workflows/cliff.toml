@@ -67,7 +67,12 @@ protect_breaking_commits = false
 # Optionally sets the commit's scope and can decide to exclude commits from further processing.
 commit_parsers = [
     # Add all of the merge PRs into a new group/section
-    { message = '^Merge pull request #([0-9]+) from .*\n\n(.*)', replace = "PR #$1: $2", group = "Merged Pull Requests" },
+    { message = '^Merge pull request #([0-9]+) from .*\n\n(.*)', replace = "PR #$1: $2", group = "<!-- 0 -->:twisted_rightwards_arrows: Merged Pull Requests" },
+    { message = "^feat*", group = "<!-- 1 -->:rocket: New features" },
+    { message = "^fix*", group = "<!-- 2 -->:bug: Bug fixes" },
+    { message = "^perf*", group = "<!-- 3 -->:zap: Performance" },
+    { message = "^doc*", group = "<!-- 4 -->:memo: Documentation" },
+    { message = "^chore*", group = "<!-- 5 -->:gear: Miscellaneous" },
 ]
 
 # Exclude commits that are not matched by any commit parser.
@@ -95,12 +100,3 @@ sort_commits = "newest"
 
 # Process submodules commits
 recurse_submodules = false
-
-# Define the sections. Comment out to hide
-[sections]
-"<!-- 0 -->🔀 Merged Pull Requests" = ["Merged Pull Requests"]
-"<!-- 1 -->🚀 Features" = ["feat"]
-"<!-- 2 -->🐛 Bug Fixes" = ["fix"]
-"<!-- 3 -->⚡ Performance" = ["perf"]
-"<!-- 4 -->📝 Documentation" = ["docs"]
-"<!-- 5 -->💄 Style" = ["style"]
