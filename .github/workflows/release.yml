@@ -52,7 +52,7 @@ jobs:
         uses: orhun/git-cliff-action@v4
         id: create-changelog
         with:
-          args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend CHANGELOG.md --config-url https://github.com/ANMedia/wp-vip-gh-workflows/blob/changelog-pr/.github/workflows/cliff.toml?raw=true
+          args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend=CHANGELOG.md --config-url='https://github.com/ANMedia/wp-vip-gh-workflows/blob/changelog-pr/.github/workflows/cliff.toml?raw=true'
           github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_REPO: ${{ github.repository }}
