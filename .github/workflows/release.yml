@@ -45,6 +45,9 @@ jobs:
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+      # This changes the ownership of files in the GITHUB_WORKSPACE to the current runner's user to prevent a changelog write error
+      - name: Change file ownership
+        run: sudo chown -R $(whoami):$(whoami) .
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v4
         id: create-changelog
@@ -54,8 +57,6 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           OUTPUT: "CHANGELOG.md" # this shouldn't be necessary to define because of the --prepend arg
-      - name: Print the changelog file contents to stdout for debugging
-        run: cat CHANGELOG.md
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
         with:
