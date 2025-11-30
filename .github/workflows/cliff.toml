@@ -13,8 +13,6 @@ body = """
     {% endfor %}
 {% endfor %}
 
----
-
 """
 
 # Remove leading and trailing whitespaces from the changelog's body.
@@ -74,7 +72,7 @@ commit_parsers = [
 
 # Exclude commits that are not matched by any commit parser.
 # @TODO maybe should be false? Trying to only render the commits that are PR merges
-filter_commits = true
+filter_commits = false
 
 # Fail on a commit that is not matched by any commit parser.
 fail_on_unmatched_commit = false
@@ -100,9 +98,9 @@ recurse_submodules = false
 
 # Define the sections. Comment out to hide
 [sections]
-"🔀 Merged Pull Requests" = ["Merged Pull Requests"]
-#"🚀 Features" = ["feat"]
-#"🐛 Bug Fixes" = ["fix"]
-#"⚡ Performance" = ["perf"]
-# "📝 Documentation" = ["docs"]
-# "💄 Style" = ["style"]
+"<!-- 0 -->🔀 Merged Pull Requests" = ["Merged Pull Requests"]
+"<!-- 1 -->🚀 Features" = ["feat"]
+"<!-- 2 -->🐛 Bug Fixes" = ["fix"]
+"<!-- 3 -->⚡ Performance" = ["perf"]
+"<!-- 4 -->📝 Documentation" = ["docs"]
+"<!-- 5 -->💄 Style" = ["style"]
