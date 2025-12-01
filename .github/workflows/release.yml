@@ -81,8 +81,8 @@ jobs:
         run: |
           if git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git $(basename ${{ github.repository }}).wiki; then
             cd $(basename ${{ github.repository }}).wiki
-            git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
-            git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
+            git config user.name "GitHub Actions"
+            git config user.email "dmg-github@dmgmedia.co.uk"
             echo -e "${{ steps.create-changelog.outputs.changelog }}$(cat Changelog.md)" > Changelog.md
             git add .
             git commit -m "Updated Changelog.md"
