@@ -83,7 +83,7 @@ jobs:
             cd $(basename ${{ github.repository }}).wiki
             git config user.name "GitHub Actions"
             git config user.email "dmg-github@dmgmedia.co.uk"
-            echo -e "${{ steps.create-changelog.outputs.changelog }}$(cat Changelog.md)" > Changelog.md
+            echo -e "${{ steps.create-changelog.outputs.content }}$(cat Changelog.md)" > Changelog.md
             git add .
             git commit -m "Updated Changelog.md"
             git push
