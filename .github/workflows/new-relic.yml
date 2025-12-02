@@ -29,7 +29,7 @@ permissions: read-all
 
 jobs:
   new-relic-marker:
-    name: Set New Relic Deployment Marker
+    name: Set Deployment Marker
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'production' || github.ref_name == 'preprod' || github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' }}
     steps:

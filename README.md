@@ -1,7 +1,6 @@
 # WordPress VIP Github Action Workflows
 
-Repository to store [reusable Github Action Workflow](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) configuration files for DMG WordPress VIP applications. 
-
+Repository to store [reusable Github Action Workflow](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows) configuration files for DMG WordPress VIP applications.
 
 ## Example Project File
 
@@ -50,7 +49,7 @@ jobs:
             update_wiki: true
 
     do-new-relic:
-        name: Set New Relic Deployment Marker
+        name: Run New Relic Workflow
         needs: [ do-built-deploy ]
         uses: ANMedia/wp-vip-gh-workflows/.github/workflows/new-relic.yml@main
         secrets:
@@ -69,14 +68,13 @@ jobs:
         uses: ANMedia/wp-vip-gh-workflows/.github/workflows/reset.yml@main
 ```
 
-
 ## Workflows
 
 Summary descriptions of the resuable workflows.
 
 ### Deploy to Built
 
-Build the application with Composer and NPM. 
+Build the application with Composer and NPM.
 Push to the WordPress VIP deployment branch `-built` using the WP VIP-hosted script.
 
 ### Lint
@@ -95,16 +93,16 @@ Execute PHPUnit tests via `composer run phpunit`
 
 ### Release
 
-* Create a git tag for the current sha.
-* Build and commit a changelog based on the current and last tag.
-* Promote this tag to a release.
-* Set a deployment marker in New Relic.
+- Create a git tag for the current sha.
+- Build and commit a changelog based on the current and last tag.
+- Promote this tag to a release.
+- Set a deployment marker in New Relic.
 
 ### New Relic
 
-* Sets a deployment marker in New Relic for the given branch.
-* Markers are required for the `production` branch. The `NEW_RELIC_API_KEY` and `NEW_RELIC_DEPLOYMENT_ENTITY_GUID` secrets must be set in the repository for this branch.
-* Markers are also supported for the `test$N` and `develop` and `preprod` branches, but you need to set the corresponding New Relic entity GUIDs as secrets in the repository. If you don't, the deployment marker step will be skipped for those branches.
+- Sets a deployment marker in New Relic for the given branch.
+- Markers are required for the `production` branch. The `NEW_RELIC_API_KEY` and `NEW_RELIC_DEPLOYMENT_ENTITY_GUID` secrets must be set in the repository for this branch.
+- Markers are also supported for the `test$N` and `develop` and `preprod` branches, but you need to set the corresponding New Relic entity GUIDs as secrets in the repository. If you don't, the deployment marker step will be skipped for those branches.
 
 ### Reset
 
