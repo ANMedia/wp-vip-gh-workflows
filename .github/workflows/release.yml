@@ -7,11 +7,6 @@ on:
         required: false
         type: boolean
         default: true
-    secrets:
-      NEW_RELIC_API_KEY:
-        required: true
-      NEW_RELIC_DEPLOYMENT_ENTITY_GUID:
-        required: true
 
 permissions: write-all
 
@@ -24,10 +19,12 @@ jobs:
         uses: actions/checkout@master
         with:
           fetch-depth: 0
+
       # Create git tag from timestamp YYYY-MM-DDTHH:MM:SS
       - name: Get current date and time
         id: datetime
         run: echo "TAG_NAME=$(date +'%Y-%m-%dT%H.%M.%S')" >> "$GITHUB_OUTPUT"
+
       - name: Create and push tag
         uses: rickstaa/action-create-tag@v1
         with:
@@ -35,19 +32,23 @@ jobs:
           message: "Release ${{ steps.datetime.outputs.TAG_NAME }}"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           force_push_tag: true
+
       - name: Get latest tag
         id: get_latest_tag
         run: |
           LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 1p)
           echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Get second latest tag
         id: get_second_latest_tag
         run: |
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
+
       # This changes the ownership of files in the GITHUB_WORKSPACE to the current runner's user to prevent a changelog write error
       - name: Change file ownership
         run: sudo chown -R $(whoami):$(whoami) .
+
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v4
         id: create-changelog
@@ -56,6 +57,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_REPO: ${{ github.repository }}
+
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
         with:
@@ -66,6 +68,7 @@ jobs:
           body: ${{ steps.create-changelog.outputs.content }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
+
       - name: Commit CHANGELOG.md
         if: ${{ inputs.commit_changelog }}
         uses: stefanzweifel/git-auto-commit-action@v4
@@ -75,6 +78,7 @@ jobs:
           push_options: "--force"
           commit_message: "docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.latest_tag }} [skip ci]"
           file_pattern: CHANGELOG.md
+
       - name: Update Wiki
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
