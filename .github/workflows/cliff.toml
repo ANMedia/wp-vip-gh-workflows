@@ -91,7 +91,7 @@ use_branch_tags = false
 # Order releases topologically instead of chronologically.
 topo_order = false
 
-# Order releases topologically instead of chronologically.
+# Order commits topologically instead of chronologically.
 topo_order_commits = false
 
 # Order of commits in each group/release within the changelog.
