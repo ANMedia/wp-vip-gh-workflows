@@ -96,7 +96,6 @@ Execute PHPUnit tests via `composer run phpunit`
 - Create a git tag for the current sha.
 - Build and commit a changelog based on the current and last tag.
 - Promote this tag to a release.
-- Set a deployment marker in New Relic.
 
 ### New Relic
 
