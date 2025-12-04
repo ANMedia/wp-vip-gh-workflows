@@ -46,7 +46,6 @@ jobs:
         uses: ANMedia/wp-vip-gh-workflows/.github/workflows/release.yml@main
         with:
             commit_changelog: false
-            update_wiki: true
 
     do-new-relic:
         name: Run New Relic Workflow
