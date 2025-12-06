@@ -76,7 +76,6 @@ commit_parsers = [
 ]
 
 # Exclude commits that are not matched by any commit parser.
-# @TODO maybe should be false? Trying to only render the commits that are PR merges
 filter_commits = false
 
 # Fail on a commit that is not matched by any commit parser.

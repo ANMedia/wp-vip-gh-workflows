@@ -14,22 +14,22 @@ jobs:
       # needed to install private packages from dmg-satis.net
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
     steps:
-    - uses: actions/checkout@v4
-    - name: Composer self-update
-      run: sudo composer self-update
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev --ignore-platform-req=php
-    - name: Run PHPCS
-      run: composer run lint:php
-    - name: Run PHP Stan
-      run: composer run phpstan
+      - uses: actions/checkout@v4
+      - name: Composer self-update
+        run: sudo composer self-update
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev --ignore-platform-req=php
+      - name: Run PHPCS
+        run: composer run lint:php
+      - name: Run PHP Stan
+        run: composer run phpstan
 
   lint-js:
     name: Lint JS
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Install NPM dependencies
-      run: npm clean-install 
-    - name: NPM lint
-      run: npm run lint:js
+      - uses: actions/checkout@v4
+      - name: Install NPM dependencies
+        run: npm clean-install
+      - name: NPM lint
+        run: npm run lint:js
