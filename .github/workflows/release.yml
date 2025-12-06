@@ -7,10 +7,6 @@ on:
         required: false
         type: boolean
         default: true
-      update_wiki:
-        required: false
-        type: boolean
-        default: false
 
 permissions: write-all
 
@@ -19,7 +15,6 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
-
       - name: Checkout code
         uses: actions/checkout@master
         with:
@@ -40,9 +35,9 @@ jobs:
 
       - name: Get latest tag
         id: get_latest_tag
-        uses: actions-ecosystem/action-get-latest-tag@v1
-        with:
-          semver_only: false
+        run: |
+          LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 1p)
+          echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Get second latest tag
         id: get_second_latest_tag
@@ -50,17 +45,18 @@ jobs:
           SECOND_LATEST_TAG=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | sed -n 2p)
           echo "second_latest_tag=$SECOND_LATEST_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Update CHANGELOG
-        id: changelog
-        uses: requarks/changelog-action@v1
+      # This changes the ownership of files in the GITHUB_WORKSPACE to the current runner's user to prevent a changelog write error
+      - name: Change file ownership
+        run: sudo chown -R $(whoami):$(whoami) .
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: create-changelog
         with:
-          token: ${{ github.token }}
-          fromTag: ${{ steps.get_latest_tag.outputs.tag }}
-          toTag: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}
-          writeToFile: true
-          includeInvalidCommits: true
-          excludeTypes: build,
-          reverseOrder: true
+          args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend='CHANGELOG.md' --output='/tmp/CHANGELOG.md' --config-url='https://github.com/ANMedia/wp-vip-gh-workflows/blob/main/.github/workflows/cliff.toml?raw=true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Create Release
         uses: ncipollo/release-action@v1.12.0
@@ -68,42 +64,31 @@ jobs:
           allowUpdates: true
           draft: false
           makeLatest: true
-          name: ${{ steps.get_latest_tag.outputs.tag }}
-          body: ${{ steps.changelog.outputs.changes }}
+          name: ${{ steps.get_latest_tag.outputs.latest_tag }}
+          body: ${{ steps.create-changelog.outputs.content }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.get_latest_tag.outputs.tag }}
+          tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
 
       - name: Commit CHANGELOG.md
         if: ${{ inputs.commit_changelog }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: preprod
-          commit_options: '--no-verify'
-          push_options: '--force'
-          commit_message: 'docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.tag }} [skip ci]'
+          commit_options: "--no-verify"
+          push_options: "--force"
+          commit_message: "docs: update CHANGELOG.md for ${{ steps.get_latest_tag.outputs.latest_tag }} [skip ci]"
           file_pattern: CHANGELOG.md
 
       - name: Update Wiki
-        if: ${{ inputs.update_wiki }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUMBER=$(git log ${{ github.sha }} --grep='Merge pull request' --pretty=format:'%s' -1 | grep -o '#[0-9]\+')
-          PR_URL="[${{ github.repository }}#${PR_NUMBER:1}](https://github.com/${{ github.repository }}/pull/${PR_NUMBER:1})"
-
-          # Note: This will only run on production so no need for conditional.
-          DATE=$(date '+%-d %B %Y')
-          MESSAGE="\r***\n**$DATE**"
-
-          CL_ENTRY="$MESSAGE $PR_URL\n"
-
-          # Note: Need to use HTTPS to access in GH Actions. Also use dynamic
-          # repository path to allow for forked repo usage.
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git $(basename ${{ github.repository }}).wiki
-          cd $(basename ${{ github.repository }}).wiki
-          git config user.name "GitHub Actions"
-          git config user.email "dmg-github@dmgmedia.co.uk"
-          echo -e "$CL_ENTRY$(cat Change-Log.md)" > Change-Log.md
-          git add .
-          git commit -m "Updated Change-Log.md"
-          git push
+          if git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git $(basename ${{ github.repository }}).wiki; then
+            cd $(basename ${{ github.repository }}).wiki
+            git config user.name "GitHub Actions"
+            git config user.email "dmg-github@dmgmedia.co.uk"
+            echo -e "${{ steps.create-changelog.outputs.content }}$(cat Changelog.md)" > Changelog.md
+            git add .
+            git commit -m "Updated Changelog.md"
+            git push
+          fi
