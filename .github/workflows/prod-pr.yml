@@ -1,0 +1,32 @@
+name: Upsert Production Pull Request
+on:
+    push:
+        branches:
+            - preprod
+
+jobs:
+    upsert-prod-pr:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  ref: ${{ github.head_ref }}
+                  fetch-depth: 0
+            - name: Get list of merged PRs
+              run: |
+                  # Some repos will use feature branch merges to build the changelog, others the raw commits.
+                  echo "MERGED_PRS<<EOF" >> $GITHUB_ENV
+                  REPO_NAME=$(basename -s .git $(git config --get remote.origin.url))
+                  if [[ "$REPO_NAME" == "metro" ||  "$REPO_NAME" == "inews" ]]; then
+                    echo "$(git log --merges --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /")" >> $GITHUB_ENV
+                  else
+                    echo "$(git log --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /")" >> $GITHUB_ENV
+                  fi
+                  echo "EOF" >> $GITHUB_ENV
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Create Pull Request
+              run: |
+                  gh pr create -B production -H preprod --title 'preprod > production' --body "$MERGED_PRS"
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
