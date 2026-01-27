@@ -1,4 +1,4 @@
-name: PHPUnit
+name: PHPUnit with Paratest
 
 on:
   workflow_call:
@@ -13,10 +13,13 @@ on:
 
 jobs:
   phpunit:
-    name: PHPUnit
+    name: PHPUnit with Paratest
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        processes: [2, 4]
     env:
-      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }'
     services:
       mysql:
         image: mysql:8.0
@@ -24,22 +27,30 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
           MYSQL_DATABASE: wordpress_test
         ports:
-          - 3306:3306
+          - 3307:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Subversion
         run: sudo apt-get install -y subversion &
+
       - name: Configure PHP
         uses: shivammathur/setup-php@v2
         with:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
           coverage: xdebug
+
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
-      - name: PHPUnit
+
+      - name: Install Paratest
+        run: composer require --dev brianium/paratest
+
+      - name: Run Paratest
         run: |
-          composer run phpunit
+          composer run paratest --processes=${{ matrix.processes }} --configuration=phpunit.xml.dist
+
       - name: Commit coverage report
         if: ${{ inputs.commit_coverage }}
         run: |
