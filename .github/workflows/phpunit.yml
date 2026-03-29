@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     services:
       mysql:
         image: mysql:8.0

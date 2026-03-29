@@ -19,6 +19,7 @@ jobs:
       VIP_DEPLOY_SUFFIX: "-built"
       # needed to install private packages from dmg-satis.net
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Check out source code
         uses: actions/checkout@v4
