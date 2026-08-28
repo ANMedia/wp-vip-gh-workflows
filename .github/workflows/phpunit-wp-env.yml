@@ -1,0 +1,76 @@
+name: PHPUnit (wp-env)
+
+on:
+  workflow_call:
+    inputs:
+      commit_coverage:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      COMPOSER_AUTH:
+        required: true
+
+jobs:
+  phpunit:
+    name: PHPUnit (wp-env)
+    runs-on: ubuntu-latest
+    env:
+      COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
+          coverage: xdebug
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm clean-install
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
+
+      - name: Start wp-env
+        if: ${{ !inputs.commit_coverage }}
+        run: npm run test:php:setup
+
+      - name: Start wp-env (with Xdebug)
+        if: ${{ inputs.commit_coverage }}
+        run: npm run test:php:setup:debug
+
+      - name: Docker debug information
+        run: docker ps -a
+
+      - name: Run PHPUnit
+        if: ${{ !inputs.commit_coverage }}
+        run: npm run test:php:base
+
+      - name: Run PHPUnit with coverage
+        if: ${{ inputs.commit_coverage }}
+        run: npm run test:php:coverage:base
+
+      - name: Stop wp-env
+        if: always()
+        run: npm run test:php:teardown
+
+      - name: Commit coverage report
+        if: ${{ inputs.commit_coverage }}
+        run: |
+          git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
+          git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
+          git fetch origin  
+          git checkout ${{ github.head_ref || github.ref_name }}
+          ls -al ./tests/phpunit
+          git status
+          git add --force ./tests/phpunit/coverage
+          git commit -m "Add PHPUnit coverage report" 
+          git push --force origin ${{ github.head_ref || github.ref_name }}
