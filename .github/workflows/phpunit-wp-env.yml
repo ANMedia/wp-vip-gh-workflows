@@ -36,6 +36,17 @@ jobs:
       - name: Install NPM dependencies
         run: npm clean-install
 
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
 
