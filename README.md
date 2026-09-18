@@ -32,6 +32,12 @@ jobs:
         secrets:
             COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
 
+    do-jest:
+        name: Run Jest
+        uses: ANMedia/wp-vip-gh-workflows/.github/workflows/jest.yml@main
+        with:
+            coverage: false
+
     do-built-deploy:
         name: Deploy to -built
         #needs: [do-lint]
@@ -89,6 +95,17 @@ Run the PHP and JS linters. Requires commands like:
 ### PHPUnit
 
 Execute PHPUnit tests via `composer run phpunit`
+
+### Jest
+
+Execute JavaScript unit tests after installing npm dependencies.
+
+Required scripts:
+
+`npm run test:unit`
+`npm run test:unit:coverage`
+
+Supports an optional `coverage` workflow input. When `false`, the workflow runs `npm run test:unit`. When `true`, it runs `npm run test:unit:coverage`.
 
 ### Release
 

@@ -1,0 +1,33 @@
+name: Jest
+
+on:
+  workflow_call:
+    inputs:
+      coverage:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  jest:
+    name: Jest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm clean-install
+
+      - name: Run Jest
+        if: ${{ !inputs.coverage }}
+        run: npm run test:unit
+
+      - name: Run Jest with coverage
+        if: ${{ inputs.coverage }}
+        run: npm run test:unit:coverage
