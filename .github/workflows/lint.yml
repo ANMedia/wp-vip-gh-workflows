@@ -11,7 +11,7 @@ jobs:
     name: Lint PHP
     runs-on: ubuntu-latest
     env:
-      # needed to install private packages from dmg-satis.net
+      
       COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
     steps:
       - uses: actions/checkout@v4
