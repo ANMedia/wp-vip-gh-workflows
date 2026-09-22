@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+  workflow_call:
+    secrets:
+      COMPOSER_AUTH:
+        required: true
+
+jobs:
+  lint-php:
+    name: Lint PHP
+    runs-on: ubuntu-latest
+    env:
+      COMPOSER_AUTH: ${{secrets.COMPOSER_AUTH}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Composer self-update
+        run: sudo composer self-update
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --dev --ignore-platform-req=php
+      - name: Run PHPCS
+        run: composer run lint:php
+      - name: Run PHP Stan
+        run: composer run phpstan
+
+  lint-js:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install NPM dependencies
+        run: npm clean-install
+      - name: NPM lint
+        run: npm run lint:js
