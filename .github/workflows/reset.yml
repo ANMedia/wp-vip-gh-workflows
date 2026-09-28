@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@master
       # Reset all branch heads (except production and preprod) to the production head after building
       - name: Reset Branch
-        if: ${{ github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' }}
+        if: ${{ github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' || github.ref_name == 'test5' }}
         run: |
           git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
           git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
@@ -32,7 +32,7 @@ jobs:
           git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
           git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
           git fetch origin --quiet
-          export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'develop')
+          export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'test5' 'develop')
           for test_env in ${TEST_ENVS[@]}; do
             if git show-ref --quiet refs/remotes/origin/$test_env; then
               echo "Resetting branch $test_env"

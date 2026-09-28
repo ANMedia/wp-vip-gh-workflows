@@ -20,6 +20,8 @@ on:
         required: false
       NEW_RELIC_TEST4_ENTITY_GUID:
         required: false
+      NEW_RELIC_TEST5_ENTITY_GUID:
+        required: false
       NEW_RELIC_DEVELOP_ENTITY_GUID:
         required: false
       NEW_RELIC_PREPROD_ENTITY_GUID:
@@ -31,7 +33,7 @@ jobs:
   new-relic-marker:
     name: Set Deployment Marker
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == 'production' || github.ref_name == 'preprod' || github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' }}
+    if: ${{ github.ref_name == 'production' || github.ref_name == 'preprod' || github.ref_name == 'develop' || github.ref_name == 'test1' || github.ref_name == 'test2' || github.ref_name == 'test3' || github.ref_name == 'test4' || github.ref_name == 'test5' }}
     steps:
       - name: Checkout code
         if: ${{ github.ref_name == 'production' }}
@@ -77,6 +79,9 @@ jobs:
                 ;;
               "test4")
                 ENTITY_GUID="${{ secrets.NEW_RELIC_TEST4_ENTITY_GUID }}"
+                ;;
+              "test5")
+                ENTITY_GUID="${{ secrets.NEW_RELIC_TEST5_ENTITY_GUID }}"
                 ;;
               "develop")
                 ENTITY_GUID="${{ secrets.NEW_RELIC_DEVELOP_ENTITY_GUID }}"
