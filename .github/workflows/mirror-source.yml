@@ -1,0 +1,36 @@
+name: Mirror Source
+
+on:
+  workflow_call:
+    inputs:
+      mirror_repository:
+        required: true
+        type: string
+    secrets:
+      WPCOMVIP_MIRROR_TOKEN:
+        required: true
+
+concurrency:
+  group: mirror-source-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository_owner == 'ANMedia'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push branch to wpcomvip mirror
+        env:
+          MIRROR_TOKEN: ${{ secrets.WPCOMVIP_MIRROR_TOKEN }}
+          MIRROR_REPOSITORY: ${{ inputs.mirror_repository }}
+        run: |
+          [[ "${MIRROR_REPOSITORY}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]
+          git remote add mirror \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPOSITORY}.git"
+          git push mirror "HEAD:${GITHUB_REF}"
+          git ls-remote --exit-code mirror "${GITHUB_REF}"

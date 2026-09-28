@@ -1,0 +1,41 @@
+name: Mirror Built
+
+on:
+  workflow_call:
+    inputs:
+      source_branch:
+        required: true
+        type: string
+      mirror_repository:
+        required: true
+        type: string
+    secrets:
+      WPCOMVIP_MIRROR_TOKEN:
+        required: true
+
+jobs:
+  mirror:
+    if: github.repository_owner == 'ANMedia'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push built ref to wpcomvip mirror
+        env:
+          MIRROR_TOKEN: ${{ secrets.WPCOMVIP_MIRROR_TOKEN }}
+          SOURCE_BRANCH: ${{ inputs.source_branch }}
+          MIRROR_REPOSITORY: ${{ inputs.mirror_repository }}
+        run: |
+          BUILT_BRANCH="${SOURCE_BRANCH}-built"
+          git check-ref-format --branch "${BUILT_BRANCH}"
+          [[ "${MIRROR_REPOSITORY}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]
+          git fetch origin "refs/heads/${BUILT_BRANCH}:refs/heads/${BUILT_BRANCH}"
+          git remote add mirror \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPOSITORY}.git"
+          git push mirror \
+            "refs/heads/${BUILT_BRANCH}:refs/heads/${BUILT_BRANCH}"
+          git ls-remote --exit-code mirror "refs/heads/${BUILT_BRANCH}"
