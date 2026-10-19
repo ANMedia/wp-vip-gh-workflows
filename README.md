@@ -82,6 +82,18 @@ Summary descriptions of the resuable workflows.
 Build the application with Composer and NPM.
 Push to the WordPress VIP deployment branch `-built` using the WP VIP-hosted script.
 
+### Mirror Source
+
+Push the current source branch to a WordPress VIP mirror repository.
+Requires a `mirror_repository` input in `owner/repository` format and a `WPCOMVIP_MIRROR_TOKEN` secret with write access to the mirror.
+Supports force-pushed source branches using `--force-with-lease`, except for `develop`, `preprod` and `production`.
+
+### Mirror Built
+
+Push an existing `<source_branch>-built` branch to a WordPress VIP mirror repository after deployment.
+Requires `source_branch` and `mirror_repository` inputs and a `WPCOMVIP_MIRROR_TOKEN` secret with write access to the mirror.
+Both mirror workflows only run for repositories owned by `ANMedia`.
+
 ### Lint
 
 Run the PHP and JS linters. Requires commands like:

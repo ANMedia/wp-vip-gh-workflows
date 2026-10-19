@@ -13,6 +13,10 @@ on:
       WPCOMVIP_MIRROR_TOKEN:
         required: true
 
+concurrency:
+  group: mirror-built-${{ inputs.source_branch }}
+  cancel-in-progress: false
+
 jobs:
   mirror:
     if: github.repository_owner == 'ANMedia'
@@ -34,6 +38,7 @@ jobs:
           git check-ref-format --branch "${BUILT_BRANCH}"
           [[ "${MIRROR_REPOSITORY}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]
           git fetch origin "refs/heads/${BUILT_BRANCH}:refs/heads/${BUILT_BRANCH}"
+          git config --local --unset-all http.https://github.com/.extraheader || true
           git remote add mirror \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPOSITORY}.git"
           git push mirror \
