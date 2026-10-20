@@ -1,0 +1,67 @@
+name: Workflow security
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "Dockerfile*"
+      - ".github/dependabot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinning:
+    name: Require pinned actions and images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Check actions are pinned to a commit SHA
+        run: |
+          bad=$(grep -rnE '^\s*-?\s*uses:\s*[^./ ]' .github --include='*.yml' --include='*.yaml' \
+            | grep -vE 'uses:\s*[^[:space:]#]+@[0-9a-f]{40}(\s|$)' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Unpinned 'uses:' references found (pin to a 40-char commit SHA with a '# vX.Y.Z' comment):"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Check Docker images are pinned to a digest
+        run: |
+          bad=$(grep -rnE '^\s*image:\s' .github --include='*.yml' --include='*.yaml' \
+            | grep -vE '@sha256:[0-9a-f]{64}' | grep -vE 'image:\s*\$\{\{' || true)
+          dbad=$(grep -nE '^\s*FROM\s' Dockerfile* 2>/dev/null \
+            | grep -vE '@sha256:[0-9a-f]{64}|FROM\s+scratch' || true)
+          if [ -n "$bad$dbad" ]; then
+            echo "::error::Docker images must be pinned to an @sha256 digest:"
+            echo "$bad"
+            echo "$dbad"
+            exit 1
+          fi
+
+  lint:
+    name: actionlint and zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+
+      # Report-only for now: set continue-on-error to false once existing findings are triaged.
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        continue-on-error: true
+        with:
+          advanced-security: false
