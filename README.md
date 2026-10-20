@@ -6,7 +6,9 @@ Repository to store [reusable Github Action Workflow](https://docs.github.com/en
 
 Each WordPress VIP application should contain a workflow file within `/.github/workflows` that calls the necessary reusable workflows. Some projects may not call all workflows (e.g. PHPUnit)
 
-```
+If you are using the mirroring workflows you will need to replace DMG_REPO and VIP_REPO with the actual repo names.
+
+```yaml
 name: Build and Deploy
 
 on:
@@ -19,6 +21,15 @@ on:
 permissions: write-all
 
 jobs:
+
+    mirror-source:
+        name: Mirror source branch to wpcomvip
+        if: github.repository == 'dmg-wp-sites/DMG_REPO'
+        uses: ANMedia/wp-vip-gh-workflows/.github/workflows/mirror-source.yml@main
+        with:
+            mirror_repository: wpcomvip/VIP_REPO
+        secrets:
+            WPCOMVIP_MIRROR_TOKEN: ${{ secrets.WPCOMVIP_MIRROR_TOKEN }}
 
     do-lint:
         name: Lint PHP & JS
@@ -44,6 +55,25 @@ jobs:
         uses: ANMedia/wp-vip-gh-workflows/.github/workflows/deploy-built.yml@main
         secrets:
             COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+
+    mirror-built:
+        name: Mirror -built branch to wpcomvip
+        if: >-
+            needs.do-built-deploy.result == 'success' &&
+            github.repository == 'dmg-wp-sites/DMG_REPO' &&
+            (
+                startsWith(github.ref_name, 'test') ||
+                github.ref_name == 'develop' ||
+                github.ref_name == 'preprod' ||
+                github.ref_name == 'production'
+            )
+        needs: [ do-built-deploy ]
+        uses: ANMedia/wp-vip-gh-workflows/.github/workflows/mirror-built.yml@main
+        with:
+            source_branch: ${{ github.ref_name }}
+            mirror_repository: wpcomvip/VIP_REPO
+        secrets:
+            WPCOMVIP_MIRROR_TOKEN: ${{ secrets.WPCOMVIP_MIRROR_TOKEN }}
 
     do-release:
         name: Trigger Release Workflow
