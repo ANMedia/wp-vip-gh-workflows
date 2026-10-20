@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Checkout code
         if: ${{ github.ref_name == 'production' }}
-        uses: actions/checkout@master
+        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
       - name: Get latest tag
         id: get_latest_tag
         if: ${{ github.ref_name == 'production' }}
-        uses: actions-ecosystem/action-get-latest-tag@v1
+        uses: actions-ecosystem/action-get-latest-tag@b7c32daec3395a9616f88548363a42652b22d435 # v1.6.0
         with:
           semver_only: false
 
@@ -114,7 +114,7 @@ jobs:
       - name: Set New Relic deployment marker
         id: newrelic-marker
         if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
-        uses: newrelic/deployment-marker-action@v2.6.1
+        uses: newrelic/deployment-marker-action@b0c0863151aae3c51c37a5a4a7e26a6c92cd5b91 # v2.6.1
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           region: "US"

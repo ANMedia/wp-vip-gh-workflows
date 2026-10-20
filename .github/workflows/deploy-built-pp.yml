@@ -6,7 +6,9 @@ on:
       COMPOSER_AUTH:
         required: true
 
-permissions: write-all
+# Default to read-only; the job below opts in to contents: write to push the -built branch.
+permissions:
+  contents: read
 
 jobs:
   deploy-built:
@@ -22,7 +24,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Check out source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # setup PHP deps
       - name: Composer self-update
@@ -72,4 +74,6 @@ jobs:
       - name: Deploy built branch to GitHub
         run: |
           export GITHUB_AUTH_TOKEN=$(echo -n "x-access-token:${{ secrets.GITHUB_TOKEN }}" | base64 -w 0)
-          bash <(curl -s "https://raw.githubusercontent.com/Automattic/vip-go-build/master/deploy.sh")
+          # Pinned to a reviewed vip-go-build commit rather than `master`, so upstream changes
+          # cannot run in this job (with a write token) until the pin is deliberately bumped.
+          bash <(curl -fsSL "https://raw.githubusercontent.com/Automattic/vip-go-build/9ff4924deb47a8043da255b1cd7ac216dff9dc0a/deploy.sh")

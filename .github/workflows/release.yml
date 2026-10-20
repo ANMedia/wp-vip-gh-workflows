@@ -8,15 +8,20 @@ on:
         type: boolean
         default: true
 
-permissions: write-all
+permissions:
+  contents: read
 
 jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    # contents: write covers everything this job does: pushing the tag, creating the release,
+    # committing CHANGELOG.md to preprod and pushing to the wiki repo (wiki access follows contents).
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@master
+        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
         with:
           fetch-depth: 0
 
@@ -26,12 +31,12 @@ jobs:
         run: echo "TAG_NAME=$(date +'%Y-%m-%dT%H.%M.%S')" >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
-        uses: rickstaa/action-create-tag@v1
+        uses: rickstaa/action-create-tag@a1c7777fcb2fee4f19b0f283ba888afa11678b72 # v1.7.2
         with:
           tag: ${{ steps.datetime.outputs.TAG_NAME }}
           message: "Release ${{ steps.datetime.outputs.TAG_NAME }}"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          force_push_tag: true
+          force_push_tag: false
 
       - name: Get latest tag
         id: get_latest_tag
@@ -50,7 +55,7 @@ jobs:
         run: sudo chown -R $(whoami):$(whoami) .
 
       - name: Generate a changelog
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         id: create-changelog
         with:
           args: ${{ steps.get_second_latest_tag.outputs.second_latest_tag }}..${{ steps.get_latest_tag.outputs.latest_tag }} --prepend='CHANGELOG.md' --output='/tmp/CHANGELOG.md' --config-url='https://github.com/ANMedia/wp-vip-gh-workflows/blob/main/.github/workflows/cliff.toml?raw=true'
@@ -59,7 +64,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create Release
-        uses: ncipollo/release-action@v1.12.0
+        uses: ncipollo/release-action@a2e71bdd4e7dab70ca26a852f29600c98b33153e # v1.12.0
         with:
           allowUpdates: true
           draft: false
@@ -71,7 +76,7 @@ jobs:
 
       - name: Commit CHANGELOG.md
         if: ${{ inputs.commit_changelog }}
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           branch: preprod
           commit_options: "--no-verify"
