@@ -93,7 +93,7 @@ Supports force-pushed source branches using `--force-with-lease`, except for `de
 
 Push an existing `<source_branch>-built` branch to a WordPress VIP mirror repository after deployment.
 Requires `source_branch` and `mirror_repository` inputs and a `WPCOMVIP_MIRROR_TOKEN` secret with write access to the mirror.
-Both mirror workflows only run for repositories owned by `ANMedia`.
+Both mirror workflows only run for repositories owned by `ANMedia` or `dmg-wp-sites`.
 
 ### Lint
 

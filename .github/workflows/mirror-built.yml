@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   mirror:
-    if: github.repository_owner == 'ANMedia'
+    if: github.repository_owner == 'ANMedia' || github.repository_owner == 'dmg-wp-sites'
     runs-on: ubuntu-latest
     permissions:
       contents: read
