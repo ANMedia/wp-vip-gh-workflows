@@ -15,14 +15,14 @@ jobs:
             - name: Get list of merged PRs
               run: |
                   # Some repos will use feature branch merges to build the changelog, others the raw commits.
-                  echo "MERGED_PRS<<EOF" >> $GITHUB_ENV
-                  REPO_NAME=$(basename -s .git $(git config --get remote.origin.url))
+                  echo "MERGED_PRS<<EOF" >> "$GITHUB_ENV"
+                  REPO_NAME=$(basename -s .git "$(git config --get remote.origin.url)")
                   if [[ "$REPO_NAME" == "metro" ||  "$REPO_NAME" == "inews" ]]; then
-                    echo "$(git log --merges --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /")" >> $GITHUB_ENV
+                    { git log --merges --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /"; echo; } >> "$GITHUB_ENV"
                   else
-                    echo "$(git log --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /")" >> $GITHUB_ENV
+                    { git log --pretty=format:"%s" refs/remotes/origin/production..refs/remotes/origin/preprod | sed "s/^/\- /"; echo; } >> "$GITHUB_ENV"
                   fi
-                  echo "EOF" >> $GITHUB_ENV
+                  echo "EOF" >> "$GITHUB_ENV"
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - name: Create Pull Request

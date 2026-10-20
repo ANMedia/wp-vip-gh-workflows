@@ -52,7 +52,7 @@ jobs:
 
       # This changes the ownership of files in the GITHUB_WORKSPACE to the current runner's user to prevent a changelog write error
       - name: Change file ownership
-        run: sudo chown -R $(whoami):$(whoami) .
+        run: sudo chown -R "$(whoami):$(whoami)" .
 
       - name: Generate a changelog
         uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
@@ -88,8 +88,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git $(basename ${{ github.repository }}).wiki; then
-            cd $(basename ${{ github.repository }}).wiki
+          if git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" "$(basename ${{ github.repository }}).wiki"; then
+            cd "$(basename ${{ github.repository }}).wiki"
             git config user.name "GitHub Actions"
             git config user.email "dmg-github@dmgmedia.co.uk"
             echo -e "${{ steps.create-changelog.outputs.content }}$(cat Changelog.md)" > Changelog.md

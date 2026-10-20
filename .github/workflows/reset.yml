@@ -37,15 +37,15 @@ jobs:
           git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
           git fetch origin --quiet
           export TEST_ENVS=('test1' 'test2' 'test3' 'test4' 'test5' 'develop')
-          for test_env in ${TEST_ENVS[@]}; do
-            if git show-ref --quiet refs/remotes/origin/$test_env; then
+          for test_env in "${TEST_ENVS[@]}"; do
+            if git show-ref --quiet "refs/remotes/origin/$test_env"; then
               echo "Resetting branch $test_env"
-              git checkout -B $test_env origin/$test_env
+              git checkout -B "$test_env" "origin/$test_env"
               git reset --hard origin/production
               echo "$test_env hard reset on $(date)" > reset.txt
               echo -e "\n$(git log -n 1 origin/production)" >> reset.txt
               git add .
               git commit -m "[skip ci] $test_env - [skip ci] git reset --hard origin/production" --no-verify
-              git push -f origin $test_env && echo "Push succeeded for $test_env" || echo "Push failed for $test_env"
+              git push -f origin "$test_env" && echo "Push succeeded for $test_env" || echo "Push failed for $test_env"
             fi
           done

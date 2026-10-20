@@ -38,7 +38,7 @@ jobs:
 
       - name: Get Composer cache directory
         id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -75,13 +75,15 @@ jobs:
 
       - name: Commit coverage report
         if: ${{ inputs.commit_coverage }}
+        env:
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
           git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
           git fetch origin  
-          git checkout ${{ github.head_ref || github.ref_name }}
+          git checkout "$HEAD_REF"
           ls -al ./tests/phpunit
           git status
           git add --force ./tests/phpunit/coverage
           git commit -m "Add PHPUnit coverage report" 
-          git push --force origin ${{ github.head_ref || github.ref_name }}
+          git push --force origin "$HEAD_REF"
