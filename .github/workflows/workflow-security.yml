@@ -8,6 +8,7 @@ on:
       - "Dockerfile*"
       - ".github/dependabot.yml"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -22,28 +23,76 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check actions are pinned to a commit SHA
+      # Parses the YAML (rather than grepping text) so quoting and comments cannot hide or fake a pin.
+      - name: Check actions and images are pinned
+        shell: bash
         run: |
-          bad=$(grep -rnE '^\s*-?\s*uses:\s*[^./ ]' .github --include='*.yml' --include='*.yaml' \
-            | grep -vE 'uses:\s*[^[:space:]#]+@[0-9a-f]{40}(\s|$)' || true)
-          if [ -n "$bad" ]; then
-            echo "::error::Unpinned 'uses:' references found (pin to a 40-char commit SHA with a '# vX.Y.Z' comment):"
-            echo "$bad"
-            exit 1
-          fi
+          ruby - <<'RUBY'
+          require "yaml"
 
-      - name: Check Docker images are pinned to a digest
-        run: |
-          bad=$(grep -rnE '^\s*image:\s' .github --include='*.yml' --include='*.yaml' \
-            | grep -vE '@sha256:[0-9a-f]{64}' | grep -vE 'image:\s*\$\{\{' || true)
-          dbad=$(grep -nE '^\s*FROM\s' Dockerfile* 2>/dev/null \
-            | grep -vE '@sha256:[0-9a-f]{64}|FROM\s+scratch' || true)
-          if [ -n "$bad$dbad" ]; then
-            echo "::error::Docker images must be pinned to an @sha256 digest:"
-            echo "$bad"
-            echo "$dbad"
+          errors = []
+          sha     = /\A[^@\s]+@\h{40}\z/
+          digest  = /@sha256:\h{64}\z/
+
+          check_use = lambda do |file, value|
+            return unless value.is_a?(String)
+            return if value.start_with?("./")
+            ok = value.start_with?("docker://") ? value.match?(digest) : value.match?(sha)
+            errors << "#{file}: uses: #{value} (pin to a 40-char commit SHA, or an @sha256 digest for docker://)" unless ok
+          end
+
+          check_image = lambda do |file, value|
+            return unless value.is_a?(String)
+            return if value.include?("$" + "{{")
+            errors << "#{file}: image: #{value} (pin to an @sha256 digest)" unless value.match?(digest)
+          end
+
+          walk = lambda do |file, node|
+            case node
+            when Hash
+              check_use.call(file, node["uses"]) if node.key?("uses")
+              node.each_value { |v| walk.call(file, v) }
+            when Array
+              node.each { |v| walk.call(file, v) }
+            end
+          end
+
+          Dir.glob([".github/workflows/**/*.{yml,yaml}", ".github/actions/**/*.{yml,yaml}"]).sort.each do |file|
+            begin
+              doc = YAML.safe_load(File.read(file), aliases: true)
+            rescue StandardError => e
+              errors << "#{file}: cannot parse (#{e.message})"
+              next
+            end
+            walk.call(file, doc)
+            next unless doc.is_a?(Hash) && doc["jobs"].is_a?(Hash)
+            doc["jobs"].each_value do |job|
+              next unless job.is_a?(Hash)
+              c = job["container"]
+              check_image.call(file, c.is_a?(Hash) ? c["image"] : c)
+              (job["services"] || {}).each_value do |svc|
+                check_image.call(file, svc["image"]) if svc.is_a?(Hash)
+              end
+            end
+          end
+
+          Dir.glob("Dockerfile*").sort.each do |file|
+            stages = []
+            File.readlines(file).each_with_index do |line, i|
+              next unless (m = line.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
+              image = m[1]
+              errors << "#{file}:#{i + 1}: FROM #{image} (pin to an @sha256 digest)" unless
+                image.casecmp?("scratch") || stages.include?(image.downcase) || image.match?(digest)
+              stages << m[2].downcase if m[2]
+            end
+          end
+
+          unless errors.empty?
+            errors.each { |e| puts "::error::#{e}" }
             exit 1
-          fi
+          end
+          puts "All actions and images are pinned."
+          RUBY
 
   lint:
     name: actionlint and zizmor
