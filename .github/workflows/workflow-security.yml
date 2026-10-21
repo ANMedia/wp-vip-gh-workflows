@@ -43,8 +43,18 @@ jobs:
 
           check_image = lambda do |file, value|
             return unless value.is_a?(String)
-            return if value.include?("$" + "{{")
             errors << "#{file}: image: #{value} (pin to an @sha256 digest)" unless value.match?(digest)
+          end
+
+          check_dockerfile = lambda do |file|
+            stages = []
+            File.readlines(file).each_with_index do |line, i|
+              next unless (m = line.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
+              image = m[1]
+              errors << "#{file}:#{i + 1}: FROM #{image} (pin to an @sha256 digest)" unless
+                image.casecmp?("scratch") || stages.include?(image.downcase) || image.match?(digest)
+              stages << m[2].downcase if m[2]
+            end
           end
 
           walk = lambda do |file, node|
@@ -65,6 +75,16 @@ jobs:
               next
             end
             walk.call(file, doc)
+            # Docker action metadata: check a docker:// image, or the FROM lines of its local Dockerfile.
+            if doc.is_a?(Hash) && doc["runs"].is_a?(Hash) && doc["runs"]["using"] == "docker"
+              img = doc["runs"]["image"]
+              if img.is_a?(String) && img.start_with?("docker://")
+                check_image.call(file, img)
+              elsif img.is_a?(String)
+                df = File.join(File.dirname(file), img)
+                check_dockerfile.call(df) if File.file?(df)
+              end
+            end
             next unless doc.is_a?(Hash) && doc["jobs"].is_a?(Hash)
             doc["jobs"].each_value do |job|
               next unless job.is_a?(Hash)
@@ -76,16 +96,7 @@ jobs:
             end
           end
 
-          Dir.glob("Dockerfile*").sort.each do |file|
-            stages = []
-            File.readlines(file).each_with_index do |line, i|
-              next unless (m = line.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
-              image = m[1]
-              errors << "#{file}:#{i + 1}: FROM #{image} (pin to an @sha256 digest)" unless
-                image.casecmp?("scratch") || stages.include?(image.downcase) || image.match?(digest)
-              stages << m[2].downcase if m[2]
-            end
-          end
+          Dir.glob("Dockerfile*").sort.each { |file| check_dockerfile.call(file) }
 
           unless errors.empty?
             errors.each { |e| puts "::error::#{e}" }

@@ -77,4 +77,6 @@ jobs:
           export GITHUB_AUTH_TOKEN
           # Pinned to a reviewed vip-go-build commit rather than `master`, so upstream changes
           # cannot run in this job (with a write token) until the pin is deliberately bumped.
-          bash <(curl -fsSL "https://raw.githubusercontent.com/Automattic/vip-go-build/9ff4924deb47a8043da255b1cd7ac216dff9dc0a/deploy.sh")
+          # Download first so a failed fetch aborts the step instead of running an empty script.
+          curl -fsSL "https://raw.githubusercontent.com/Automattic/vip-go-build/9ff4924deb47a8043da255b1cd7ac216dff9dc0a/deploy.sh" -o "$RUNNER_TEMP/deploy.sh"
+          bash "$RUNNER_TEMP/deploy.sh"
