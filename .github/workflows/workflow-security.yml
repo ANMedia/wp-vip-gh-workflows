@@ -74,6 +74,14 @@ jobs:
             instructions << [start, buf] if buf
             stages = []
             instructions.each do |lineno, text|
+              # COPY/ADD --from and RUN --mount=from can pull an external image, not just an earlier stage.
+              refs = []
+              refs << Regexp.last_match(1) if text =~ /\A\s*(?:COPY|ADD)\s.*?--from=(\S+)/i
+              refs.concat(text.scan(/\A\s*RUN\s.*?--mount=[^\s]*?\bfrom=([^,\s]+)/i).flatten) if text =~ /\A\s*RUN\s/i
+              refs.each do |ref|
+                next if ref.match?(/\A\d+\z/) || stages.include?(ref.downcase) || ref.match?(digest)
+                errors << "#{file}:#{lineno}: --from #{ref} (pin external images to an @sha256 digest)"
+              end
               next unless (m = text.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
               image = m[1]
               errors << "#{file}:#{lineno}: FROM #{image} (pin to an @sha256 digest)" unless
