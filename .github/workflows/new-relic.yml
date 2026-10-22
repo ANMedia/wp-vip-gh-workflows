@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Checkout code
         if: ${{ github.ref_name == 'production' }}
-        uses: actions/checkout@master
+        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
       - name: Get latest tag
         id: get_latest_tag
         if: ${{ github.ref_name == 'production' }}
-        uses: actions-ecosystem/action-get-latest-tag@v1
+        uses: actions-ecosystem/action-get-latest-tag@b7c32daec3395a9616f88548363a42652b22d435 # v1.6.0
         with:
           semver_only: false
 
@@ -58,12 +58,14 @@ jobs:
 
           # Handle production branch specially
           if [ "$BRANCH_NAME" == "production" ]; then
-            echo "ENTITY_GUID=${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}" >> $GITHUB_OUTPUT
-            echo "DESCRIPTION=Automated Release via Github Actions" >> $GITHUB_OUTPUT
-            echo "VERSION=${{ steps.get_latest_tag.outputs.tag }}" >> $GITHUB_OUTPUT
+            {
+              echo "ENTITY_GUID=${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}"
+              echo "DESCRIPTION=Automated Release via Github Actions"
+              echo "VERSION=${{ steps.get_latest_tag.outputs.tag }}"
+            } >> "$GITHUB_OUTPUT"
           else
             # For other branches, construct name of GUID secret
-            SECRET_NAME="NEW_RELIC_$(echo $BRANCH_NAME | tr '[:lower:]' '[:upper:]')_ENTITY_GUID"
+            SECRET_NAME="NEW_RELIC_$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')_ENTITY_GUID"
             echo "Looking for secret: $SECRET_NAME"
 
             # Get the secret value by name
@@ -91,30 +93,32 @@ jobs:
                 ;;
               *)
                 echo "No entity GUID configured for branch $BRANCH_NAME, skipping marker"
-                echo "SKIP_MARKER=true" >> $GITHUB_OUTPUT
+                echo "SKIP_MARKER=true" >> "$GITHUB_OUTPUT"
                 exit 0
                 ;;
             esac
 
             if [ -n "$ENTITY_GUID" ] && [ "$ENTITY_GUID" != "" ]; then
-              echo "ENTITY_GUID=$ENTITY_GUID" >> $GITHUB_OUTPUT
-              echo "DESCRIPTION=Automated deployment via Github Actions - metro-$BRANCH_NAME" >> $GITHUB_OUTPUT
-              echo "VERSION=${{ github.sha }}" >> $GITHUB_OUTPUT
+              {
+                echo "ENTITY_GUID=$ENTITY_GUID"
+                echo "DESCRIPTION=Automated deployment via Github Actions - metro-$BRANCH_NAME"
+                echo "VERSION=${{ github.sha }}"
+              } >> "$GITHUB_OUTPUT"
             else
               echo "$SECRET_NAME not available, skipping marker"
-              echo "SKIP_MARKER=true" >> $GITHUB_OUTPUT
+              echo "SKIP_MARKER=true" >> "$GITHUB_OUTPUT"
             fi
           fi
 
       - name: Get current timestamp in milliseconds for deployment marker
         id: timestamp
         if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
-        run: echo "NOW_MS=$(date +%s%3N)" >> $GITHUB_OUTPUT
+        run: echo "NOW_MS=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
 
       - name: Set New Relic deployment marker
         id: newrelic-marker
         if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
-        uses: newrelic/deployment-marker-action@v2.6.1
+        uses: newrelic/deployment-marker-action@b0c0863151aae3c51c37a5a4a7e26a6c92cd5b91 # v2.6.1
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           region: "US"

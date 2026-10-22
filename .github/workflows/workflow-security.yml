@@ -1,0 +1,120 @@
+name: Workflow security
+
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      zizmor-blocking:
+        description: "Fail the run on zizmor findings (default: report only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  pinning:
+    name: Require pinned actions and images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Parses the YAML (rather than grepping text) so quoting and comments cannot hide or fake a pin.
+      - name: Check actions and images are pinned
+        shell: bash
+        run: |
+          ruby - <<'RUBY'
+          require "yaml"
+
+          errors = []
+          sha     = /\A[^@\s]+@\h{40}\z/
+          digest  = /@sha256:\h{64}\z/
+
+          check_use = lambda do |file, value|
+            return unless value.is_a?(String)
+            return if value.start_with?("./")
+            ok = value.start_with?("docker://") ? value.match?(digest) : value.match?(sha)
+            errors << "#{file}: uses: #{value} (pin to a 40-char commit SHA, or an @sha256 digest for docker://)" unless ok
+          end
+
+          check_image = lambda do |file, value|
+            return unless value.is_a?(String)
+            errors << "#{file}: image: #{value} (pin to an @sha256 digest)" unless value.match?(digest)
+          end
+
+          # Only real action references: job-level `uses`, step `uses`, and composite-action step `uses`.
+          check_steps = lambda do |file, steps|
+            Array(steps).each { |st| check_use.call(file, st["uses"]) if st.is_a?(Hash) }
+          end
+
+          check_references = lambda do |file, doc|
+            return unless doc.is_a?(Hash)
+            if doc["jobs"].is_a?(Hash)
+              doc["jobs"].each_value do |job|
+                next unless job.is_a?(Hash)
+                check_use.call(file, job["uses"])
+                check_steps.call(file, job["steps"])
+              end
+            end
+            check_steps.call(file, doc["runs"]["steps"]) if doc["runs"].is_a?(Hash)
+          end
+
+          Dir.glob([".github/workflows/**/*.{yml,yaml}", ".github/**/action.{yml,yaml}"]).uniq.sort.each do |file|
+            begin
+              doc = YAML.safe_load(File.read(file), aliases: true)
+            rescue StandardError => e
+              errors << "#{file}: cannot parse (#{e.message})"
+              next
+            end
+            check_references.call(file, doc)
+            # Docker action metadata: check a docker:// image.
+            if doc.is_a?(Hash) && doc["runs"].is_a?(Hash) && doc["runs"]["using"] == "docker"
+              img = doc["runs"]["image"]
+              if img.is_a?(String) && img.start_with?("docker://")
+                check_image.call(file, img)
+              end
+            end
+            next unless doc.is_a?(Hash) && doc["jobs"].is_a?(Hash)
+            doc["jobs"].each_value do |job|
+              next unless job.is_a?(Hash)
+              c = job["container"]
+              check_image.call(file, c.is_a?(Hash) ? c["image"] : c)
+              (job["services"] || {}).each_value do |svc|
+                check_image.call(file, svc["image"]) if svc.is_a?(Hash)
+              end
+            end
+          end
+
+          unless errors.empty?
+            errors.each { |e| puts "::error::#{e}" }
+            exit 1
+          end
+          puts "All actions and images are pinned."
+          RUBY
+
+  lint:
+    name: actionlint and zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+
+      # Report-only for now: set continue-on-error to false once existing findings are triaged.
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        continue-on-error: ${{ !inputs.zizmor-blocking }}
+        with:
+          advanced-security: false
