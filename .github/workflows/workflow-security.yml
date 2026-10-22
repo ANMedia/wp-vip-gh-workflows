@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - ".github/**"
-      - "Dockerfile*"
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -49,47 +48,6 @@ jobs:
             errors << "#{file}: image: #{value} (pin to an @sha256 digest)" unless value.match?(digest)
           end
 
-          # Joins escaped newlines into logical instructions (honouring `# escape=`), as Docker does.
-          check_dockerfile = lambda do |file|
-            raw = File.readlines(file, chomp: true)
-            esc = "\\"
-            raw.each do |l|
-              break unless l.strip.empty? || l.strip.start_with?("#")
-              esc = Regexp.last_match(1) if l =~ /\A\s*#\s*escape\s*=\s*(\S)\s*\z/i
-            end
-            instructions = []
-            buf = nil
-            start = 0
-            raw.each_with_index do |l, i|
-              next if l.strip.empty? || l.strip.start_with?("#")
-              start = i + 1 if buf.nil?
-              buf = (buf || "") + l.rstrip
-              if buf.end_with?(esc)
-                buf = buf[0...-esc.length]
-              else
-                instructions << [start, buf]
-                buf = nil
-              end
-            end
-            instructions << [start, buf] if buf
-            stages = []
-            instructions.each do |lineno, text|
-              # COPY/ADD --from and RUN --mount=from can pull an external image, not just an earlier stage.
-              refs = []
-              refs << Regexp.last_match(1) if text =~ /\A\s*(?:COPY|ADD)\s.*?--from=(\S+)/i
-              refs.concat(text.scan(/\A\s*RUN\s.*?--mount=[^\s]*?\bfrom=([^,\s]+)/i).flatten) if text =~ /\A\s*RUN\s/i
-              refs.each do |ref|
-                next if ref.match?(/\A\d+\z/) || stages.include?(ref.downcase) || ref.match?(digest)
-                errors << "#{file}:#{lineno}: --from #{ref} (pin external images to an @sha256 digest)"
-              end
-              next unless (m = text.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
-              image = m[1]
-              errors << "#{file}:#{lineno}: FROM #{image} (pin to an @sha256 digest)" unless
-                image.casecmp?("scratch") || stages.include?(image.downcase) || image.match?(digest)
-              stages << m[2].downcase if m[2]
-            end
-          end
-
           # Only real action references: job-level `uses`, step `uses`, and composite-action step `uses`.
           check_steps = lambda do |file, steps|
             Array(steps).each { |st| check_use.call(file, st["uses"]) if st.is_a?(Hash) }
@@ -115,14 +73,11 @@ jobs:
               next
             end
             check_references.call(file, doc)
-            # Docker action metadata: check a docker:// image, or the FROM lines of its local Dockerfile.
+            # Docker action metadata: check a docker:// image.
             if doc.is_a?(Hash) && doc["runs"].is_a?(Hash) && doc["runs"]["using"] == "docker"
               img = doc["runs"]["image"]
               if img.is_a?(String) && img.start_with?("docker://")
                 check_image.call(file, img)
-              elsif img.is_a?(String)
-                df = File.join(File.dirname(file), img)
-                check_dockerfile.call(df) if File.file?(df)
               end
             end
             next unless doc.is_a?(Hash) && doc["jobs"].is_a?(Hash)
@@ -135,8 +90,6 @@ jobs:
               end
             end
           end
-
-          Dir.glob("Dockerfile*").sort.each { |file| check_dockerfile.call(file) }
 
           unless errors.empty?
             errors.each { |e| puts "::error::#{e}" }

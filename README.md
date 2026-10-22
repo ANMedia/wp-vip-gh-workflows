@@ -97,9 +97,9 @@ Both mirror workflows only run for repositories owned by `ANMedia` or `dmg-wp-si
 
 ### Workflow Security
 
-Checks a repository's CI supply chain. It fails if any `uses:` is not pinned to a 40-character commit SHA (or an `@sha256` digest for `docker://`), if any container/service `image:` or Dockerfile `FROM` lacks an `@sha256` digest, or if `actionlint` reports findings. `zizmor` is report-only unless `zizmor-blocking: true` is set.
+Checks a repository's CI supply chain. It fails if any `uses:` is not pinned to a 40-character commit SHA (or an `@sha256` digest for `docker://`), if any container/service `image:` lacks an `@sha256` digest, or if `actionlint` reports findings. `zizmor` is report-only unless `zizmor-blocking: true` is set.
 
-It scans the calling repository's `.github/` directory and root `Dockerfile*`, so each repository calls it with its own triggers:
+It scans the calling repository's `.github/` directory, so each repository calls it with its own triggers:
 
 ```yaml
 name: Workflow security
@@ -108,7 +108,6 @@ on:
   pull_request:
     paths:
       - ".github/**"
-      - "Dockerfile*"
 
 permissions:
   contents: read
