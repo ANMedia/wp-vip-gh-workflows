@@ -46,12 +46,34 @@ jobs:
             errors << "#{file}: image: #{value} (pin to an @sha256 digest)" unless value.match?(digest)
           end
 
+          # Joins escaped newlines into logical instructions (honouring `# escape=`), as Docker does.
           check_dockerfile = lambda do |file|
+            raw = File.readlines(file, chomp: true)
+            esc = "\\"
+            raw.each do |l|
+              break unless l.strip.empty? || l.strip.start_with?("#")
+              esc = Regexp.last_match(1) if l =~ /\A\s*#\s*escape\s*=\s*(\S)\s*\z/i
+            end
+            instructions = []
+            buf = nil
+            start = 0
+            raw.each_with_index do |l, i|
+              next if l.strip.empty? || l.strip.start_with?("#")
+              start = i + 1 if buf.nil?
+              buf = (buf || "") + l.rstrip
+              if buf.end_with?(esc)
+                buf = buf[0...-esc.length]
+              else
+                instructions << [start, buf]
+                buf = nil
+              end
+            end
+            instructions << [start, buf] if buf
             stages = []
-            File.readlines(file).each_with_index do |line, i|
-              next unless (m = line.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
+            instructions.each do |lineno, text|
+              next unless (m = text.match(/\A\s*FROM\s+(?:--\S+\s+)*(\S+)(?:\s+AS\s+(\S+))?/i))
               image = m[1]
-              errors << "#{file}:#{i + 1}: FROM #{image} (pin to an @sha256 digest)" unless
+              errors << "#{file}:#{lineno}: FROM #{image} (pin to an @sha256 digest)" unless
                 image.casecmp?("scratch") || stages.include?(image.downcase) || image.match?(digest)
               stages << m[2].downcase if m[2]
             end
