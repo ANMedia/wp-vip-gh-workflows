@@ -95,6 +95,31 @@ Push an existing `<source_branch>-built` branch to a WordPress VIP mirror reposi
 Requires `source_branch` and `mirror_repository` inputs and a `WPCOMVIP_MIRROR_TOKEN` secret with write access to the mirror.
 Both mirror workflows only run for repositories owned by `ANMedia` or `dmg-wp-sites`.
 
+### Workflow Security
+
+Checks a repository's CI supply chain. It fails if any `uses:` is not pinned to a 40-character commit SHA (or an `@sha256` digest for `docker://`), if any container/service `image:` or Dockerfile `FROM` lacks an `@sha256` digest, or if `actionlint` reports findings. `zizmor` is report-only unless `zizmor-blocking: true` is set.
+
+It scans the calling repository's `.github/` directory and root `Dockerfile*`, so each repository calls it with its own triggers:
+
+```yaml
+name: Workflow security
+
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+      - "Dockerfile*"
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    uses: ANMedia/wp-vip-gh-workflows/.github/workflows/workflow-security.yml@<commit sha> # <release>
+    # with:
+    #   zizmor-blocking: true
+```
+
 ### Lint
 
 Run the PHP and JS linters. Requires commands like:
