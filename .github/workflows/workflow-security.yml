@@ -3,10 +3,8 @@ name: Workflow security
 on:
   pull_request:
     paths:
-      - ".github/workflows/**"
-      - ".github/actions/**"
+      - ".github/**"
       - "Dockerfile*"
-      - ".github/dependabot.yml"
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -94,7 +92,7 @@ jobs:
             end
           end
 
-          Dir.glob([".github/workflows/**/*.{yml,yaml}", ".github/actions/**/*.{yml,yaml}"]).sort.each do |file|
+          Dir.glob([".github/workflows/**/*.{yml,yaml}", ".github/**/action.{yml,yaml}"]).uniq.sort.each do |file|
             begin
               doc = YAML.safe_load(File.read(file), aliases: true)
             rescue StandardError => e
