@@ -20,7 +20,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
           MYSQL_DATABASE: wordpress_test
@@ -28,11 +28,11 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Install Subversion
         run: sudo apt-get install -y subversion
       - name: Configure PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
           coverage: xdebug
@@ -43,13 +43,15 @@ jobs:
           composer run phpunit
       - name: Commit coverage report
         if: ${{ inputs.commit_coverage }}
+        env:
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "$( git log --format=%cn -n 1 ${{github.sha}} )"
           git config user.email "$( git log --format=%ce -n 1 ${{github.sha}} )"
           git fetch origin  
-          git checkout ${{ github.head_ref || github.ref_name }}
+          git checkout "$HEAD_REF"
           ls -al ./tests/phpunit
           git status
           git add --force ./tests/phpunit/coverage
           git commit -m "Add PHPUnit coverage report" 
-          git push --force origin ${{ github.head_ref || github.ref_name }}
+          git push --force origin "$HEAD_REF"
