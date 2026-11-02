@@ -76,7 +76,7 @@ jobs:
 
       - name: Commit CHANGELOG.md
         if: ${{ inputs.commit_changelog }}
-        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
+        uses: stefanzweifel/git-auto-commit-action@d0b01107b5db882071f96de5dd4b54961ea93f4c # v7.2.1
         with:
           branch: preprod
           commit_options: "--no-verify"
