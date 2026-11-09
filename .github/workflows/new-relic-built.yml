@@ -93,7 +93,7 @@ jobs:
 
       - name: Checkout built commit
         if: steps.set-guid.outputs.SKIP_MARKER != 'true'
-        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # master
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
