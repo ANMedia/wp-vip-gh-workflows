@@ -15,10 +15,12 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    # contents: write covers everything this job does: pushing the tag, creating the release,
-    # committing CHANGELOG.md to preprod and pushing to the wiki repo (wiki access follows contents).
+    # contents: write covers pushing the tag, creating the release, committing CHANGELOG.md to preprod
+    # and pushing to the wiki repo (wiki access follows contents).
+    # pull-requests: read is needed by git-cliff, which lists closed PRs to build the changelog.
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - name: Checkout code
         uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
