@@ -102,6 +102,16 @@ jobs:
         name: Trigger Reset Workflow
         needs: [ do-built-deploy ]
         uses: ANMedia/wp-vip-gh-workflows/.github/workflows/reset.yml@main
+
+    mirror-reset:
+        name: Mirror reset branches to wpcomvip
+        if: ${{ !cancelled() && needs.do-reset.result == 'success' }}
+        needs: [ do-reset, mirror-source ]
+        uses: ANMedia/wp-vip-gh-workflows/.github/workflows/mirror-reset.yml@main
+        with:
+            mirror_repository: wpcomvip/${{ github.event.repository.name }}
+        secrets:
+            WPCOMVIP_MIRROR_TOKEN: ${{ secrets.WPCOMVIP_MIRROR_TOKEN }}
 ```
 
 ## Workflows
@@ -191,3 +201,7 @@ Supports an optional `coverage` workflow input. When `false`, the workflow runs 
 
 If a `test$N` or `develop` branch, reset to the HEAD of the `production` branch
 If a production release, reset all `test$N` and `develop` branches to `production` HEAD.
+
+### Mirror Reset
+
+After a reset, call [mirror-reset.yml](.github/workflows/mirror-reset.yml) to mirror reset branches to wpcomvip. Set `mirror_repository` and provide `WPCOMVIP_MIRROR_TOKEN` with write access to the mirror, as shown above.
