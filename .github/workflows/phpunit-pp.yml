@@ -14,7 +14,7 @@ on:
 jobs:
   phpunit:
     name: PHPUnit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       COMPOSER_AUTH: ${{secrets.COMPOSER_AUTH}}
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -29,13 +29,24 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Refresh apt package lists
+        run: |
+          sudo apt-get update
+          sudo apt-get check
       - name: Install Subversion
         run: sudo apt-get install -y subversion
       - name: Configure PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, imagick, :sqlsrv, :pdo_sqlsrv
           coverage: xdebug
+      - name: Fail on PHP startup warnings
+        run: |
+          if php -r '' 2>&1 | grep -q 'PHP Startup'; then
+            php -r '' 2>&1
+            exit 1
+          fi
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction --optimize-autoloader --ignore-platform-req=php
       - name: PHPUnit
