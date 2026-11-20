@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Push built ref to wpcomvip mirror
         env:
@@ -38,7 +39,6 @@ jobs:
           git check-ref-format --branch "${BUILT_BRANCH}"
           [[ "${MIRROR_REPOSITORY}" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]
           git fetch origin "refs/heads/${BUILT_BRANCH}:refs/heads/${BUILT_BRANCH}"
-          git config --local --unset-all http.https://github.com/.extraheader || true
           git remote add mirror \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/${MIRROR_REPOSITORY}.git"
           git push mirror \
