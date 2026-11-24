@@ -118,7 +118,7 @@ jobs:
       - name: Set New Relic deployment marker
         id: newrelic-marker
         if: ${{ steps.set-guid.outputs.SKIP_MARKER != 'true' }}
-        uses: newrelic/deployment-marker-action@b0c0863151aae3c51c37a5a4a7e26a6c92cd5b91 # v2.6.1
+        uses: newrelic/deployment-marker-action@d88a59ea8f713ad6935e60de27273157790b1e3b # v2.6.2
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           region: "US"
