@@ -2,6 +2,16 @@ name: Deploy to Built
 
 on:
   workflow_call:
+    inputs:
+      allowed_branches:
+        description: >-
+          JSON array of source branch names that may be built and pushed to
+          `<branch>-built`. Callers that override this must include the default
+          branches they still need, e.g. to add `redesign`:
+          '["production","preprod","develop","test1","test2","test3","test4","test5","redesign"]'
+        required: false
+        type: string
+        default: '["production","preprod","develop","test1","test2","test3","test4","test5"]'
     secrets:
       COMPOSER_AUTH:
         required: true
@@ -14,7 +24,7 @@ jobs:
   deploy-built:
     name: Deploy to -built
     runs-on: ubuntu-latest
-    if: startsWith(github.ref_name, 'test') || github.ref_name == 'develop' || github.ref_name == 'preprod' || github.ref_name == 'production'
+    if: contains(fromJSON(inputs.allowed_branches), github.ref_name)
     permissions:
       contents: write
     env:

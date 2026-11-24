@@ -123,6 +123,25 @@ Summary descriptions of the resuable workflows.
 Build the application with Composer and NPM.
 Push to the WordPress VIP deployment branch `-built` using the WP VIP-hosted script.
 
+Only branches listed in the optional `allowed_branches` input (a JSON array string) are built. The default is:
+
+```json
+["production","preprod","develop","test1","test2","test3","test4","test5"]
+```
+
+To build an extra branch temporarily (for example `redesign`), pass the full list including the defaults you still need:
+
+```yaml
+    do-built-deploy:
+        uses: ANMedia/wp-vip-gh-workflows/.github/workflows/deploy-built.yml@<commit sha> # <release>
+        with:
+            allowed_branches: '["production","preprod","develop","test1","test2","test3","test4","test5","redesign"]'
+        secrets:
+            COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+```
+
+Do not add extra branches to the Reset workflow; it hard-resets the branches it knows about to `production`.
+
 ### Mirror Source
 
 Push the current source branch to a WordPress VIP mirror repository.
